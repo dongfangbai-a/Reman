@@ -14,6 +14,8 @@ npm test
 
 推送后会跑 CI（`.github/workflows/ci.yml`）：类型检查、网页端构建和不依赖平台的单测在 `ubuntu-latest` 上跑；终端、shell、Git Bash 命令环境、Windows 路径这些只有 Windows 上才成立的，在 `windows-latest` 上跑全量。沙箱的测试两边都不跑——runner 上没有 srt 的专用系统账户，这部分要在本机验证。
 
+本机跑全量测试要在沙箱外：沙箱里 `taskkill` 被拒，`killProcessTree` 只能结束直接子进程，涉及「取消、超时结束命令」的用例会因为子进程还在跑而超时失败（表现为 `Date.now() - started < 5000` 之类的断言不过）。
+
 三个 job 都有 `timeout-minutes`（10 分钟、10 分钟、20 分钟），挂住时直接失败，不会吃满 GitHub 默认的 6 小时。Windows job 跑测试时加了 `--test-force-exit`：2026-11-16 有过一次测试全部跑完（329 个用例全过）却吊了 43 分钟的情况，本机同一份代码 79 秒就干净退出，之后也没能复现，不知道是哪个句柄没关；加上这个参数，测试跑完就退出，不让个别情况下的一条流水线卡死。跟着的那一步会列出命令行里带 `reman-runtime` 的残留进程，用来在复现时抓到线索——那三个「残留 bash」观察过，是 Actions 给每个 `run:` 步骤起的外壳，不算我们的进程。
 
 ## 网页端开发服务器
