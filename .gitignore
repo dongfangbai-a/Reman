@@ -16,4 +16,6 @@ __pycache__/
 .tmp/
 # 交接笔记只在本地用，不进仓库
 HANDOFF.md
+# 社交预览图：要在 GitHub 设置里手动上传，本身不进仓库
+docs/brand/
 eval/.packs/
