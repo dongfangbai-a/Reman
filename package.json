@@ -37,7 +37,7 @@
 		"typescript": "5.9"
 	},
 	"dependencies": {
-		"@anthropic-ai/sandbox-runtime": "0.0.81",
+		"@anthropic-ai/sandbox-runtime": "0.0.83",
 		"@jitl/quickjs-wasmfile-release-sync": "0.32.0",
 		"@larksuiteoapi/node-sdk": "1.76.0",
 		"@modelcontextprotocol/client": "2.4.0",
