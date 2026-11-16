@@ -1,0 +1,68 @@
+{
+	"batches": [
+		{
+			"batch": "2026-11",
+			"packedAt": "2026-11-15",
+			"commit": "7215c37",
+			"runs": [
+				"1114-1810-cc-rs__jplot.2a54bcc",
+				"1114-1810-reman-rs__jplot.2a54bcc",
+				"1114-1811-dsh-rs__jplot.2a54bcc",
+				"1114-2029-reman-go-critic__go-critic.9aea378",
+				"1114-2030-cc-go-critic__go-critic.9aea378",
+				"1114-2030-dsh-go-critic__go-critic.9aea378",
+				"1114-2305-reman-typst__typst.88356d0",
+				"1114-2306-cc-typst__typst.88356d0",
+				"1114-2306-dsh-typst__typst.88356d0",
+				"1115-0041-reman-go-critic__go-critic.9aea378",
+				"1115-0230-reman-go-critic__go-critic.9aea378",
+				"1115-0721-reman-typst__typst.88356d0",
+				"1115-0826-reman-go-critic__go-critic.9aea378",
+				"cc-1112-1702",
+				"cc-1112-1716",
+				"cc-1112-1741",
+				"cc-1113-2124",
+				"cc-1113-2316",
+				"cc-1113-2317",
+				"cc-1114-1708",
+				"cc-1115-0150",
+				"dsh-1112-1341",
+				"dsh-1112-1349",
+				"dsh-1112-1635",
+				"dsh-1113-2124",
+				"dsh-1113-2238",
+				"dsh-1113-2258",
+				"dsh-1114-1717",
+				"dsh-1115-0157",
+				"reman-1112-1808",
+				"reman-1112-1827",
+				"reman-1112-1856",
+				"reman-1113-2124",
+				"reman-1113-2235",
+				"reman-1113-2258",
+				"reman-1114-0015"
+			],
+			"redactedFiles": 0,
+			"packages": [
+				{
+					"name": "2026-11-artifacts.tar.gz",
+					"size": 731066907,
+					"sha256": "4254f9658f1c90c0787ee2ad41583629595eb4ddd5489019b54e239e4b9f8440",
+					"files": null
+				},
+				{
+					"name": "2026-11-programbench.tar.gz",
+					"size": 85004133,
+					"sha256": "e45c7c0cb65fca8217f00d6dbc6a82a1ac758617f2dd69edc591c2b39a3b6acd",
+					"files": null
+				},
+				{
+					"name": "2026-11-terminal-bench.tar.gz",
+					"size": 48453368,
+					"sha256": "e5ab560f65c4af6d1710a4bbc7caa35139ab6b945e0ccb043d181b416d0d4365",
+					"files": null
+				}
+			]
+		}
+	]
+}

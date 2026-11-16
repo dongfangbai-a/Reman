@@ -1,0 +1,96 @@
+name: CI
+
+# 类型和大部分单测在 Ubuntu 上跑（快、便宜）；终端、shell、沙箱、Git Bash 这些
+# 只有 Windows 上才成立，单独在 windows-latest 上跑全量。
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  types:
+    name: 类型检查与网页端构建
+    runs-on: ubuntu-latest
+    # 挂住时直接失败，不要耗到 GitHub 默认的 6 小时。
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: 运行时和网页端的依赖
+        run: |
+          npm ci
+          npm --prefix web ci
+      - name: 运行时的类型
+        run: npm run typecheck
+      - name: 网页端的类型
+        run: npm run typecheck --prefix web
+      - name: 网页端写出不生效的工具类
+        run: npm run check:classes --prefix web
+      - name: 网页端构建
+        run: npm run build --prefix web
+
+  test-linux:
+    name: 单测（Ubuntu）
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: 依赖
+        run: |
+          npm ci
+          npm --prefix web ci
+      - name: 不依赖平台的测试
+        # 终端、shell、沙箱、Git Bash 命令环境、Windows 路径这些留给 windows-latest。
+        run: |
+          files=$(git ls-files '*.test.ts' \
+            | grep -vE '^src/(terminals|shells|sandbox|git|tools/command)/' \
+            | grep -v '^web/src/workbench/paths\.test\.ts$')
+          echo "跑 $(echo "$files" | wc -l) 个文件"
+          node --disable-warning=ExperimentalWarning --test $files
+
+  test-windows:
+    name: 单测（Windows，全量）
+    runs-on: windows-latest
+    # 本机整套不到 6 分钟，留足余量；超过就是有测试挂住了。
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: 依赖
+        run: |
+          npm ci
+          npm --prefix web ci
+      - name: 全部测试
+        # 沙箱要 srt 的专用系统账户，runner 上没有、也不好交互式装，这个目录跳过；
+        # 沙箱的集成测试在本机手动跑（见 DEVELOPMENT.md）。
+        # --test-force-exit：跑完测试就退出，不等残留的句柄。2026-11-16 有一次在 runner 上
+        # 测试全跑完却吊了 43 分钟（本机 79 秒干净退出），加这个先不让它卡死整条流水线。
+        run: |
+          files=$(git ls-files '*.test.ts' | grep -v '^src/sandbox/')
+          echo "跑 $(echo "$files" | wc -l) 个文件"
+          node --disable-warning=ExperimentalWarning --test --test-force-exit $files
+      - name: 跑完看看还有没有测试留下的进程
+        # 配合 --test-force-exit：它会让流水线正常结束，这一步用来找出是谁没退。
+        # 只看命令行里带 reman-runtime 的：测试的临时目录、工作目录都带这个前缀，
+        # 不会把 Actions 自己那些 --noprofile 的步骤 shell 算进来（观察过好几次，它们一直在）。
+        if: always()
+        run: |
+          echo '--- 测试留下的进程（命令行带 reman-runtime）'
+          powershell -NoProfile -Command 'Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match "reman-runtime" } | ForEach-Object { "{0} | {1} | {2}" -f $_.ProcessId, $_.Name, $_.CommandLine }' | head -20 || echo '没有残留'

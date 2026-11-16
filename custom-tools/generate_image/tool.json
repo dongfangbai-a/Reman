@@ -1,0 +1,51 @@
+{
+	"label": "图片生成",
+	"description": "OpenAI 接口的图片生成工具",
+	"defaultPolicy": "allow",
+	"config": [
+		{ "name": "service", "type": "service", "label": "图片生成供应商", "description": "提供 OpenAI 图片生成接口的供应商", "required": true },
+		{ "name": "model", "type": "text", "label": "模型名", "description": "gpt-image 系列模型", "required": true, "default": "gpt-image-2.6-flare" }
+	],
+	"tools": [
+		{
+			"name": "generate_image",
+			"label": "生成图片",
+			"description": "根据提示词生成图片。",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"prompt": { "type": "string", "description": "生成图片的提示词，最多 32000 个字符" },
+					"size": { "type": "string", "description": "图片尺寸，格式为「宽x高」，如 1536x1024；宽和高须为 16 的倍数，宽高比在 1:3 至 3:1 之间，最大 3840x2160。auto 表示自动选择" },
+					"quality": { "type": "string", "enum": ["auto", "low", "medium", "high", "xhigh", "max"], "description": "图片质量，auto 表示自动选择" },
+					"complexity": { "type": "string", "enum": ["low", "medium", "high"], "description": "图片构思阶段投入的计算量，与渲染质量相互独立" },
+					"background": { "type": "string", "enum": ["auto", "transparent", "opaque"], "description": "背景类型；transparent 为透明背景，须配合 png 或 webp 格式" },
+					"output_format": { "type": "string", "enum": ["png", "jpeg", "webp", "gif", "svg"], "description": "输出格式，默认 png" },
+					"output_compression": { "type": "integer", "minimum": 0, "maximum": 100, "description": "压缩级别（0–100），仅适用于 jpeg 和 webp 格式，默认 100" },
+					"n": { "type": "integer", "minimum": 1, "maximum": 10, "description": "生成数量，默认 1" },
+					"moderation": { "type": "string", "enum": ["auto", "low"], "description": "内容审核级别，low 为较宽松的过滤" },
+					"frame_count": { "type": "integer", "minimum": 2, "maximum": 16, "description": "GIF 帧数，默认 9，仅在 output_format 为 gif 时有效" },
+					"frame_duration_ms": { "type": "integer", "description": "GIF 每帧的显示时长（毫秒），默认 200，仅在 output_format 为 gif 时有效" },
+					"svg": {
+						"type": "object",
+						"description": "SVG 生成设置，仅在 output_format 为 svg 时有效",
+						"properties": {
+							"model": { "type": "string", "description": "生成 SVG 所用的模型" },
+							"reasoning": {
+								"type": "object",
+								"description": "生成 SVG 时的推理设置",
+								"properties": { "effort": { "type": "string", "enum": ["none", "minimal", "low", "medium", "high", "xhigh", "max"], "description": "推理强度" } },
+								"additionalProperties": false
+							}
+						},
+						"required": ["model"],
+						"additionalProperties": false
+					}
+				},
+				"required": ["prompt"],
+				"additionalProperties": false
+			},
+			"script": "generate.ts",
+			"timeoutSeconds": 600
+		}
+	]
+}
