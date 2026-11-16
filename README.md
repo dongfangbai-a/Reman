@@ -14,7 +14,9 @@
 
 ## 界面
 
-![Reman 的界面：左边是成员列表，中间是群聊里成员轮流发言，右边是计划和运行概况](docs/screenshots/main.webp)
+![成员页：左边是成员列表，中间是成员的完整时间线——计划、命令、文件改动、测试结果和汇报，右边是计划和运行概况](docs/screenshots/members.webp)
+
+![群聊：多个成员在一个群里轮流发言、互相 @，右边是计划和运行概况](docs/screenshots/group-chat.webp)
 
 ## 快速开始
 

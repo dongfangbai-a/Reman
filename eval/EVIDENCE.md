@@ -18,11 +18,11 @@ node eval/collect-results.mjs
 
 ## 批次
 
-| 批次 | 包 | 大小 | sha256 | 文件数 | 覆盖的运行 | 打包时的代码提交 |
-|---|---|---|---|---|---|---|
-| 2026-11 | `2026-11-artifacts.tar.gz` | 697.2M | `4254f9658f1c90c0787ee2ad41583629595eb4ddd5489019b54e239e4b9f8440` | — | 36 个 | `7215c37` |
-| 2026-11 | `2026-11-programbench.tar.gz` | 81.1M | `e45c7c0cb65fca8217f00d6dbc6a82a1ac758617f2dd69edc591c2b39a3b6acd` | — | 36 个 | `7215c37` |
-| 2026-11 | `2026-11-terminal-bench.tar.gz` | 46.2M | `e5ab560f65c4af6d1710a4bbc7caa35139ab6b945e0ccb043d181b416d0d4365` | — | 36 个 | `7215c37` |
+| 批次 | 包 | 下载 | 大小 | sha256 | 文件数 | 覆盖的运行 | 打包时的代码提交 |
+|---|---|---|---|---|---|---|---|
+| 2026-11 | `2026-11-artifacts.tar.gz` | [下载](https://github.com/dongfangbai-a/Reman/releases/download/v0.1.0/2026-11-artifacts.tar.gz) | 697.2M | `4254f9658f1c90c0787ee2ad41583629595eb4ddd5489019b54e239e4b9f8440` | — | 36 个 | `7215c37` |
+| 2026-11 | `2026-11-programbench.tar.gz` | [下载](https://github.com/dongfangbai-a/Reman/releases/download/v0.1.0/2026-11-programbench.tar.gz) | 81.1M | `e45c7c0cb65fca8217f00d6dbc6a82a1ac758617f2dd69edc591c2b39a3b6acd` | — | 36 个 | `7215c37` |
+| 2026-11 | `2026-11-terminal-bench.tar.gz` | [下载](https://github.com/dongfangbai-a/Reman/releases/download/v0.1.0/2026-11-terminal-bench.tar.gz) | 46.2M | `e5ab560f65c4af6d1710a4bbc7caa35139ab6b945e0ccb043d181b416d0d4365` | — | 36 个 | `7215c37` |
 
 ## 打过的码
 
