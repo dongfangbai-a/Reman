@@ -132,6 +132,8 @@ interface ISession {
 	 * 不用 xterm 的 marker：清屏会把屏幕上的 marker 一起清掉。
 	 */
 	readonly readLines: Map<string, number>;
+	/** 上一次读到的最后一行当时的内容：这一行可能还没写完，下次读时变了才再给一遍。 */
+	readonly readText: Map<string, string>;
 	readonly readSeq: Map<string, number>;
 	/** 缓冲区开头被裁掉了多少行（滚出回滚上限，或者被清除）。 */
 	trimmedLines: number;
@@ -215,7 +217,7 @@ export class Terminals {
 				cols: DEFAULT_COLS, rows: DEFAULT_ROWS, createdAt: Date.now(), exitedAt: null, takeoverRequests: [],
 			},
 			pty, screen, serializer, seq: 0, renderedSeq: 0, lastActivityAt: Date.now(),
-			readLines: new Map(), readSeq: new Map(), trimmedLines: 0, closedBy: undefined, waiters: 0,
+			readLines: new Map(), readText: new Map(), readSeq: new Map(), trimmedLines: 0, closedBy: undefined, waiters: 0,
 			stateWakers: new Set(), outputWakers: new Set(), reads: new Map(),
 			startupInput: '',
 			waiting: new Map(),
@@ -491,9 +493,17 @@ export class Terminals {
 		}
 		const position = session.readLines.get(memberId) ?? 0;
 		const cursorLine = buffer.baseY + buffer.cursorY;
-		const text = renderLines(buffer, position - session.trimmedLines, cursorLine);
+		const start = position - session.trimmedLines;
+		// 第一次读时从屏幕上第一行有内容的地方开始：缓冲区开头那些空白是还没写过的地方，不是程序的输出
+		// （ConPTY 启动时首行是空的，从第 0 行读会让结果以空行开头）。程序自己输出的空行在第一个非空行之下，不受影响。
+		const lines = renderLineList(buffer, start > 0 ? start : firstWrittenRow(buffer), cursorLine);
 		// 从光标所在行开始记：这一行可能还没写完（例如提示符），下次读时会完整地再给一次。
+		// 但那一行没变就不再给：转后台时，通知和后台任务的结果是两次读，共用这个游标，重复给成员会看到两遍同一段。
+		const given = session.readText.get(memberId);
+		if (start >= 0 && given !== undefined && lines.length > 0 && lines[0] === given) lines.shift();
+		const text = trimTrailingBlanks(lines).join('\n');
 		session.readLines.set(memberId, session.trimmedLines + cursorLine);
+		session.readText.set(memberId, rowText(buffer, cursorLine));
 		return clip(position < session.trimmedLines ? `……（更早的输出已超出缓冲区）\n${text}` : text);
 	}
 
@@ -636,6 +646,11 @@ function flush(session: ISession): Promise<void> {
 
 /** 把缓冲区里 [start, end] 这些行转成文字：折行接回一行，去掉末尾的空行。 */
 function renderLines(buffer: xterm.IBuffer, start: number, end: number): string {
+	return trimTrailingBlanks(renderLineList(buffer, start, end)).join('\n');
+}
+
+/** 缓冲区里 [start, end] 这些行的文字：折行接回一行。 */
+function renderLineList(buffer: xterm.IBuffer, start: number, end: number): string[] {
 	const lines: string[] = [];
 	for (let index = Math.max(0, start); index <= Math.min(end, buffer.length - 1); index++) {
 		const line = buffer.getLine(index);
@@ -644,8 +659,27 @@ function renderLines(buffer: xterm.IBuffer, start: number, end: number): string 
 		if (line.isWrapped && lines.length > 0) lines[lines.length - 1] += text;
 		else lines.push(text);
 	}
+	return lines;
+}
+
+/** 去掉末尾的空行：缓冲区底下那些没写过的是整行空白。 */
+function trimTrailingBlanks(lines: string[]): string[] {
 	while (lines.length > 0 && !lines.at(-1)!.trim()) lines.pop();
-	return lines.join('\n');
+	return lines;
+}
+
+/** 缓冲区里第一行有内容的位置：之前那些空白行是还没写过的地方。 */
+function firstWrittenRow(buffer: xterm.IBuffer): number {
+	for (let index = 0; index < buffer.length; index++) {
+		const line = buffer.getLine(index);
+		if (line && line.translateToString(true).trim()) return index;
+	}
+	return buffer.length;
+}
+
+/** 这一行现在的内容。 */
+function rowText(buffer: xterm.IBuffer, index: number): string {
+	return buffer.getLine(index)?.translateToString(true) ?? '';
 }
 
 function clip(text: string): string {

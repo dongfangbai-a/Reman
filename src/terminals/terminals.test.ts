@@ -92,6 +92,24 @@ test('新建终端、输入命令、读新输出；两个成员各读各的', { 
 	assert.deepEqual(outputLines(`[第一行]\n${unread}`), []);
 });
 
+test('同一行没变时下一次读不再给一遍：转后台时通知和结果两次读不会重复同一段', { skip: !isBash }, async t => {
+	const { runtime, first, terminal } = setup(t);
+	// 光标停在 a1 这一行上（a1 后面没有换行）。再读一次时这一行没变，不该重复给：转后台时通知读完、
+	// 后台任务的结果接着读，共用成员的读游标，重复给的话成员会看到两遍同一段。
+	const created = await terminal(first.memberId, { input: `bash -c 'printf a1; sleep 30'\n` });
+	const terminalId = /\[终端 (T_\w+)/.exec(created)![1]!;
+	assert.ok(outputLines(created).includes('a1'), created);
+	assert.equal((await runtime.terminals.readNow(terminalId, first.memberId, 'new')).output, '');
+	// 新的一行照常给，不带上刚才那一行。
+	runtime.terminals.input(terminalId, '\u0003', { memberId: first.memberId });
+	let lines: string[] = [];
+	for (let index = 0; index < 30 && !lines.includes('tail10'); index++) {
+		lines = [...lines, ...outputLines(await terminal(first.memberId, { terminal_id: terminalId, input: 'echo tail$((5+5))\n' }))];
+	}
+	assert.ok(lines.includes('tail10'), lines.join('\n'));
+	assert.equal(lines.includes('a1'), false);
+});
+
 test('输入的内容没有以回车结尾时，结果第一行写明；带回车的、按控制键的不写', { skip: !isBash }, async t => {
 	const { first, terminal } = setup(t);
 	const head = (text: string) => text.split('\n')[0];

@@ -545,13 +545,9 @@ test('终端的等待超过转后台的时间转为后台任务：返回里有�
 	const [result] = taskResults(runtime, ai.memberId);
 	assert.equal(result!.wakes, true);
 	assert.equal(result!.output.split('\n')[0], `[终端 ${terminal!.terminalId}，运行中，输出已停止 2 秒]`);
-	// 转后台时给过的输出，结束时不再给一遍。边界那一行可能重复一次：慢机器上，生成通知和取终端快照之间
-	// 又写进了新输出，增量起点就落在了已经给过的行上（CI 上偶发）。之后的输出仍然只给一次。
+	// 转后台时给过的输出，结束时不再给一遍。
 	const all = `${notice}\n${result!.output}`;
-	const repeated = all.split('a2').length - 1;
-	assert.ok(repeated === 1 || repeated === 2, `a2 应出现 1 或 2 次（边界可能重复一行），实际 ${repeated} 次`);
-	assert.equal(all.split('b4').length - 1, 1);
-	assert.ok(result!.output.includes('b4'));
+	assert.deepEqual([all.split('a2').length - 1, all.split('b4').length - 1, result!.output.includes('b4')], [1, 1, true]);
 	assert.deepEqual(runtime.tasks.list(ai.memberId).map(item => item.status), ['completed']);
 	// 被唤醒后又请求了一次模型。
 	assert.equal(model.requests.length, 3);
@@ -668,7 +664,9 @@ test('终端的等待转为后台任务时读过一次输出：调用之前就�
 	await runtime.tasks.idle();
 	await runtime.runs.idle();
 	const notice = lastResult(model.requests[1]!.input);
-	assert.match(notice, /^结果:\[终端 T_\w+，运行中，本次调用已转到后台\]\n[^]*\nd2\n/);
+	// d2 是调用之前就有的输出，要出现在通知里。d2 后面有没有换行取决于那一刻 shell 的提示符画出来没有，
+	// 两种情况都对：成员拿到的都是完整读到的那几行。
+	assert.match(notice, /^结果:\[终端 T_\w+，运行中，本次调用已转到后台\]\n[^]*\nd2(\n|$)/);
 	const [result] = taskResults(runtime, ai.memberId);
 	assert.equal(result!.output.split('\n')[0], `[终端 ${terminalId()}，运行中，输出已停止 3 秒]`);
 	assert.ok(Date.now() - calledAt < 10_000);
