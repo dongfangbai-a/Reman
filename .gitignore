@@ -16,6 +16,9 @@ __pycache__/
 .tmp/
 # 交接笔记只在本地用，不进仓库
 HANDOFF.md
+# 设计文档只在本地用，不进仓库（2026-11-16 起不再跟踪，历史里也剔掉了）
+RUNTIME_DESIGN.md
+WEB_DESIGN.md
 # 社交预览图：要在 GitHub 设置里手动上传，本身不进仓库
 docs/brand/
 eval/.packs/
