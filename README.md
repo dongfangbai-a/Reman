@@ -21,6 +21,8 @@
 ## 快速开始
 
 ```bash
+git clone https://github.com/dongfangbai-a/Reman.git
+cd Reman
 npm install            # 运行时的依赖
 npm run web:install    # 网页端的依赖
 npm run web:build      # 构建网页端
