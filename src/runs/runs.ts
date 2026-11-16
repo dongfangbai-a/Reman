@@ -818,7 +818,7 @@ export class Runs {
 
 	private requestBase(member: IMember, model: IResolvedModel) {
 		return {
-			connection: { baseUrl: model.provider.baseUrl, apiKey: model.provider.apiKey },
+			connection: { baseUrl: model.provider.baseUrl, endpointMode: model.provider.endpointMode, apiKey: model.provider.apiKey },
 			model: model.entry.model,
 			reasoningEffort: member.reasoningEffort,
 			maxOutputTokens: model.entry.maxOutputTokens,

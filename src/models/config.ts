@@ -3,6 +3,7 @@ import { errorMessage, invalid } from '../common/errors.ts';
 import { isRecord, parseJson } from '../common/json.ts';
 import { undecryptable, type Secrets } from '../common/secrets.ts';
 import { ModelError } from './client.ts';
+import type { EndpointMode } from './endpoint.ts';
 
 /** 已添加的模型。上游列表里拉到的和手动添加的都是这个样子。 */
 export interface IModelEntry {
@@ -23,6 +24,8 @@ export interface IProvider {
 	readonly id: string;
 	readonly name: string;
 	readonly baseUrl: string;
+	/** 地址怎么变成请求地址：auto 按约定补路径，exact 完全按填的来。见 endpoint.ts。 */
+	readonly endpointMode: EndpointMode;
 	/** 解密后的 key；加密保存的值解不开时是 null。 */
 	readonly apiKey: string | null;
 	readonly models: readonly IModelEntry[];
@@ -61,7 +64,7 @@ interface IModelsFile<P> {
 }
 
 const TOP_FIELDS = ['defaultModel', 'providers'];
-const PROVIDER_FIELDS = ['id', 'name', 'baseUrl', 'apiKey', 'models'];
+const PROVIDER_FIELDS = ['id', 'name', 'baseUrl', 'endpointMode', 'apiKey', 'models'];
 const MODEL_FIELDS = ['model', 'displayName', 'contextWindow', 'maxOutputTokens', 'vision'];
 const PROVIDER_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -252,17 +255,20 @@ function parseFile(value: unknown): IModelsFile<StoredProvider> {
 function parseProvider(value: unknown, path: string): StoredProvider {
 	if (!isRecord(value)) throw configError(`${path} 必须是对象`);
 	unknownFields(value, PROVIDER_FIELDS, `${path}.`);
-	const { id, name, baseUrl, apiKey, models } = value;
+	const { id, name, baseUrl, endpointMode, apiKey, models } = value;
 	if (typeof id !== 'string' || !PROVIDER_ID.test(id)) throw configError(`${path}.id 只能包含小写字母、数字和横杠，例如 zhipu`);
 	if (name !== undefined && typeof name !== 'string') throw configError(`${path}.name 必须是字符串`);
 	if (typeof baseUrl !== 'string' || !/^https?:\/\//.test(baseUrl)) throw configError(`${path}.baseUrl 必须是 http(s) 地址`);
+	// 查询和锚点不算接口地址的一部分，拼路径时会丢掉，写在这里多半是填错了。
+	if (/[?#]/.test(baseUrl)) throw configError(`${path}.baseUrl 不能带查询或锚点`);
+	if (endpointMode !== undefined && endpointMode !== 'auto' && endpointMode !== 'exact') throw configError(`${path}.endpointMode 只能是 auto 或 exact`);
 	if (typeof apiKey !== 'string' || !apiKey.trim()) throw configError(`${path}.apiKey 不能为空`);
 	if (!Array.isArray(models)) throw configError(`${path}.models 必须是数组`);
 	const entries = models.map((model: unknown, index) => parseModel(model, `${path}.models[${index}]`));
 	const names = entries.map(entry => entry.model);
 	const duplicate = names.find((model, index) => names.indexOf(model) !== index);
 	if (duplicate) throw configError(`${path} 中模型重复：${duplicate}`);
-	return { id, name: name || id, baseUrl, apiKey, models: entries };
+	return { id, name: name || id, baseUrl, endpointMode: (endpointMode ?? 'auto') as EndpointMode, apiKey, models: entries };
 }
 
 function parseModel(value: unknown, path: string): IModelEntry {

@@ -15,6 +15,7 @@ import { ConfirmDialog, Dialog, Field, INPUT_CLASS } from '../ui/Dialog.tsx';
 import { Select } from '../ui/Select.tsx';
 import { Switch } from '../ui/Switch.tsx';
 import { UsedBy } from '../ui/UsedBy.tsx';
+import { apiEndpoint } from '../../../src/models/endpoint.ts';
 import { forgetModelTests, modelKey, ModelTestButton, ModelTestStatus, useModelTestResult } from './ModelTest.tsx';
 import { suggestProviderId } from './providerId.ts';
 import { SettingsPage } from './SettingsPage.tsx';
@@ -285,27 +286,42 @@ function ProviderDialog({ provider, onClose }: { provider?: IProviderView | unde
 	const [id, setId] = useState(provider?.id ?? '');
 	const [idEdited, setIdEdited] = useState(false);
 	const [baseUrl, setBaseUrl] = useState(provider?.baseUrl ?? '');
+	// 打开「完整地址」后，地址原样使用，不再按 OpenAI 的约定补 /v1、/responses。
+	const [complete, setComplete] = useState(provider?.endpointMode === 'exact');
 	const [apiKey, setApiKey] = useState('');
 	const changeUrl = (value: string) => {
 		setBaseUrl(value);
 		if (!provider && !idEdited) setId(suggestProviderId(value, new Set(models.data?.providers.map(item => item.id) ?? [])));
 	};
+	/** 输入框下面显示的实际请求地址：还填得不像地址时不显示。 */
+	const endpointPreview = (() => {
+		const url = baseUrl.trim().replace(/\/+$/, '');
+		if (!/^https?:\/\//.test(url)) return undefined;
+		try {
+			return apiEndpoint(url, complete ? 'exact' : 'auto');
+		} catch {
+			return undefined;
+		}
+	})();
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
 		const trimmedId = id.trim();
 		const url = baseUrl.trim().replace(/\/+$/, '');
 		const key = apiKey.trim();
 		if (!/^https?:\/\//.test(url)) return action.fail('地址须以 http:// 或 https:// 开头');
+		if (/[?#]/.test(url)) return action.fail('地址里不要带 ? 或 #，那是查询和锚点，不属于接口地址');
+		if (complete && endpointPreview === undefined) return action.fail('完整地址填得不对，检查一下有没有多余的空格或路径');
 		if (!provider) {
 			if (!key) return action.fail('请填写 key');
 			if (!PROVIDER_ID.test(trimmedId)) return action.fail('标识只能包含小写字母、数字和横杠，例如 zhipu');
 			if (models.data?.providers.some(item => item.id === trimmedId)) return action.fail(`已存在标识为 ${trimmedId} 的供应商`);
 		}
 		const displayName = name.trim() || (provider?.id ?? trimmedId);
+		const endpointMode = complete ? 'exact' as const : 'auto' as const;
 		action.run(async () => {
 			await save(input => provider
-				? updateProvider(input, provider.id, item => ({ ...item, name: displayName, baseUrl: url, ...(key ? { apiKey: key } : {}) }))
-				: { ...input, providers: [...input.providers, { id: trimmedId, name: displayName, baseUrl: url, apiKey: key, models: [] }] });
+				? updateProvider(input, provider.id, item => ({ ...item, name: displayName, baseUrl: url, endpointMode, ...(key ? { apiKey: key } : {}) }))
+				: { ...input, providers: [...input.providers, { id: trimmedId, name: displayName, baseUrl: url, endpointMode, apiKey: key, models: [] }] });
 			// 地址、key 可能改了，以前的测试结果不算数。
 			if (provider) forgetModelTests(provider.id);
 		});
@@ -313,8 +329,24 @@ function ProviderDialog({ provider, onClose }: { provider?: IProviderView | unde
 	return (
 		<Dialog open onOpenChange={open => !open && onClose()} title={provider ? `编辑供应商「${provider.name}」` : '新建供应商'} width="w-[480px]">
 			<form onSubmit={submit} className="space-y-4">
-				<Field label="地址" hint="不含 /v1">
-					<input value={baseUrl} onChange={event => changeUrl(event.target.value)} placeholder="https://api.example.com" className={`${INPUT_CLASS} font-mono`} />
+				<Field
+					label="地址"
+					aside={
+						<span className="-my-2 flex items-center gap-1.5 py-2">
+							<span className="text-xs text-fg-3">完整地址</span>
+							<Switch checked={complete} label="完整地址：原样使用，不补 /v1 和 /responses" onChange={setComplete} />
+						</span>
+					}
+					hint={endpointPreview
+						? <span className="break-all">实际请求：<span className="font-mono">{endpointPreview}</span></span>
+						: complete ? '填完整的请求地址，例如 https://api.example.com/v1/responses' : '不含 /v1'}
+				>
+					<input
+						value={baseUrl}
+						onChange={event => changeUrl(event.target.value)}
+						placeholder={complete ? 'https://api.example.com/v1/responses' : 'https://api.example.com'}
+						className={`${INPUT_CLASS} font-mono`}
+					/>
 				</Field>
 				<Field label={provider ? '更换 key' : 'key'} hint={provider ? '留空则保持原 key' : undefined}>
 					<input type="password" autoComplete="off" value={apiKey} onChange={event => setApiKey(event.target.value)} className={`${INPUT_CLASS} font-mono`} />

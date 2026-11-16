@@ -113,7 +113,7 @@ test('拉取上游模型列表：带上 key，认出上下文长度和看图能�
 	await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
 	t.after(() => server.close());
 	const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-	const models = await fetchUpstreamModels({ id: 'local', name: 'local', baseUrl, apiKey: 'secret', models: [{ model: 'plain', displayName: 'plain', contextWindow: undefined, maxOutputTokens: undefined, vision: false }] });
+	const models = await fetchUpstreamModels({ id: 'local', name: 'local', baseUrl, endpointMode: 'auto', apiKey: 'secret', models: [{ model: 'plain', displayName: 'plain', contextWindow: undefined, maxOutputTokens: undefined, vision: false }] });
 	assert.equal(authorization, 'Bearer secret');
 	assert.deepEqual(models, [
 		{ model: 'plain', contextWindow: undefined, vision: undefined, added: true },
@@ -142,4 +142,15 @@ test('模型可以写输出上限：请求里带上 max_output_tokens；写错�
 		() => config.update({ providers: [{ id: 'only', baseUrl: 'http://only.test', models: [{ model: 'a', maxOutputTokens: 0 }] }] }),
 		/maxOutputTokens 必须是正整数/,
 	);
+});
+
+test('供应商的 endpointMode 不写按 auto 算，只能是 auto 或 exact；地址里不能带查询和锚点', t => {
+	let stored: unknown = { providers: [] };
+	const config = new ModelConfig(() => stored, value => stored = value);
+	const save = (provider: Record<string, unknown>) => config.update({ providers: [{ id: 'x', baseUrl: 'http://x.test', apiKey: 'key-x-000000', models: [], ...provider }] });
+	assert.equal(save({}).providers[0]?.endpointMode, 'auto');
+	assert.equal(save({ endpointMode: 'exact' }).providers[0]?.endpointMode, 'exact');
+	assert.throws(() => save({ endpointMode: 'full' }), /endpointMode 只能是 auto 或 exact/);
+	assert.throws(() => save({ baseUrl: 'http://x.test/v1?key=1' }), /不能带查询或锚点/);
+	assert.throws(() => save({ baseUrl: 'http://x.test/v1#top' }), /不能带查询或锚点/);
 });

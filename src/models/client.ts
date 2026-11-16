@@ -1,5 +1,6 @@
 import type OpenAI from 'openai';
 import { errorMessage } from '../common/errors.ts';
+import { apiEndpoint, type EndpointMode } from './endpoint.ts';
 import { clipEnd } from '../common/text.ts';
 import type { IModelOutputItem } from '../timeline/timeline.ts';
 
@@ -30,7 +31,7 @@ export interface IFunctionTool {
 }
 
 export interface IModelRequest {
-	readonly connection: { readonly baseUrl: string; readonly apiKey: string };
+	readonly connection: { readonly baseUrl: string; readonly apiKey: string; readonly endpointMode?: EndpointMode };
 	readonly model: string;
 	readonly reasoningEffort: string | null;
 	/** 一次回复最多多少 token；没写时不发，按服务商的默认值。 */
@@ -73,14 +74,17 @@ export class OpenAIModelClient implements IModelClient {
 
 	async respond(request: IModelRequest, signal: AbortSignal, onDelta: DeltaListener, onOutput: OutputListener): Promise<IModelResponse> {
 		const sdk = (await import('openai')).default;
-		const client = this.clientFor(sdk, request.connection.baseUrl, request.connection.apiKey);
+		// 地址按配置算成完整地址，按请求传进去：SDK 见到绝对地址就直接用，不再拼 /responses，
+		// 所以不用 /v1/responses 这一套的服务也能配（见 endpoint.ts）。
+		const endpoint = apiEndpoint(request.connection.baseUrl, request.connection.endpointMode ?? 'auto');
+		const client = this.clientFor(sdk, endpoint, request.connection.apiKey);
 		const params = requestBody(request) as unknown as OpenAI.Responses.ResponseCreateParamsStreaming;
 		const outputs = new Map<number, IModelOutputItem>();
 		/** 开始输出了的项：没收到「响应完成」时，这些都要收完才算完整的回复。 */
 		const started = new Set<number>();
 		let completed: OpenAI.Responses.Response | undefined;
 		try {
-			const stream = await client.responses.create(params, { signal });
+			const stream = await client.responses.create(params, { signal, path: endpoint });
 			for await (const event of stream) {
 				if ('output_index' in event) started.add(event.output_index);
 				switch (event.type) {
@@ -137,18 +141,14 @@ export class OpenAIModelClient implements IModelClient {
 		};
 	}
 
-	private clientFor(sdk: OpenAIModule, baseUrl: string, apiKey: string): OpenAI {
-		const key = `${baseUrl}\n${apiKey}`;
+	private clientFor(sdk: OpenAIModule, endpoint: string, apiKey: string): OpenAI {
+		const key = `${endpoint}\n${apiKey}`;
 		if (this.cached?.key !== key) {
-			this.cached = { key, client: new sdk({ baseURL: apiBase(baseUrl), apiKey, maxRetries: 0 }) };
+			// baseURL 只用来兜底：每次请求都传完整的绝对地址（path），这里取源站就够了。
+			this.cached = { key, client: new sdk({ baseURL: new URL(endpoint).origin, apiKey, maxRetries: 0 }) };
 		}
 		return this.cached.client;
 	}
-}
-
-/** 接口的地址：配置里的 baseUrl 不带 /v1，末尾的斜杠可有可无。 */
-export function apiBase(baseUrl: string): string {
-	return `${baseUrl.replace(/\/+$/, '')}/v1`;
 }
 
 /** 发给上游的请求体，不含地址和 key。 */

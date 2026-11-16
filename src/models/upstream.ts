@@ -1,5 +1,5 @@
 import { errorMessage, invalid } from '../common/errors.ts';
-import { apiBase } from './client.ts';
+import { modelsEndpoint } from './endpoint.ts';
 import type { IUsableProvider } from './config.ts';
 
 const TIMEOUT_MS = 15_000;
@@ -13,9 +13,9 @@ export interface IUpstreamModel {
 	readonly added: boolean;
 }
 
-/** 请求供应商的 GET /v1/models，列出它提供的模型。 */
+/** 请求供应商的模型列表（`GET …/models`），列出它提供的模型。 */
 export async function fetchUpstreamModels(provider: IUsableProvider): Promise<IUpstreamModel[]> {
-	const url = `${apiBase(provider.baseUrl)}/models`;
+	const url = modelsEndpoint(provider.baseUrl, provider.endpointMode);
 	let response: Response;
 	try {
 		response = await fetch(url, { headers: { Authorization: `Bearer ${provider.apiKey}` }, signal: AbortSignal.timeout(TIMEOUT_MS) });

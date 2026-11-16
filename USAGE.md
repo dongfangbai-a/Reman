@@ -62,10 +62,14 @@ Windows 上没有 Git Bash 时，可以从网页端设置的「shell 环境」�
 }
 ```
 
-- 只支持 OpenAI 的 **Responses** 接口（SDK 里的 `responses.create`，请求发到 `{baseUrl}/v1/responses`）；
-  Chat Completions 那套不支持，供应商要兼容 Responses 接口。
+- 只支持 OpenAI 的 **Responses** 接口（SDK 里的 `responses.create`）；Chat Completions 那套不支持，供应商要兼容
+  Responses 接口。
+- 请求发到哪个地址：只填域名时补 `/v1/responses`，填到版本段（`/v1`、`/v2`、`/v1beta`）时补 `/responses`，已经以
+  `/responses` 结尾或路径更长时原样使用。网页端填地址时，输入框下面会显示最终请求的地址。
+- 路径不一样、又不能按上面的约定补的服务：在网页端打开供应商的「完整地址」开关，地址完全按填的发，不追加
+  任何路径。配置文件里对应 `endpointMode: "exact"`，不写等于 `"auto"`。模型列表（`GET …/models`）用同一个前缀。
 - 供应商 `id` 只能用小写字母、数字和横杠，成员的 `member.json` 用它引用模型。
-- `baseUrl` 不带 `/v1`。每次请求模型时重新读取，改了不用重启。
+- 每次请求模型时重新读取 `models.json`，改了不用重启。
 - 字段很严格：不认识的字段直接报错；`defaultModel` 必须指向已添加的模型。
 - `contextWindow` 是供应商标的上下文长度，没写时按 128k 算；快满时自动压缩，剩下的留给输出。
 - `vision: true` 时，图片（工具结果里的、消息附件里的）才会发给模型；没加时只告诉它有图片看不到。

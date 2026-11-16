@@ -95,3 +95,28 @@ test('流里报响应失败：原因开头带着状态码的照状态码算能�
 	await assert.rejects(respondWith(t, failed('<429> Too many requests'), true), { retryable: true });
 	await assert.rejects(respondWith(t, failed('服务繁忙'), true), { retryable: true });
 });
+
+test('请求打到算出来的完整地址：域名补 /v1/responses，完整地址原样，不再拼 /responses', async t => {
+	const paths: string[] = [];
+	const server = createServer((request, response) => {
+		paths.push(request.url ?? '');
+		response.writeHead(401, { 'content-type': 'application/json' });
+		response.end(JSON.stringify({ error: { message: 'no key' } }));
+	});
+	await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+	t.after(() => {
+		server.closeAllConnections();
+		server.close();
+	});
+	const { port } = server.address() as AddressInfo;
+	const client = new OpenAIModelClient();
+	const request = (baseUrl: string, endpointMode: 'auto' | 'exact') => client.respond({
+		connection: { baseUrl, endpointMode, apiKey: 'test' },
+		model: 'test', reasoningEffort: null, promptCacheKey: 'test', input: [], tools: [],
+	}, new AbortController().signal, () => {}, () => {}).catch(() => undefined);
+	await request(`http://127.0.0.1:${port}`, 'auto');
+	await request(`http://127.0.0.1:${port}/api/v1`, 'auto');
+	await request(`http://127.0.0.1:${port}/api/openai`, 'auto');
+	await request(`http://127.0.0.1:${port}/api/openai`, 'exact');
+	assert.deepEqual(paths, ['/v1/responses', '/api/v1/responses', '/api/openai', '/api/openai']);
+});

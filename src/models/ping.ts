@@ -34,7 +34,7 @@ export async function pingModel(config: ModelConfig, client: IModelClient, ref: 
 	try {
 		const { provider, entry } = config.resolve(ref);
 		const response = await client.respond({
-			connection: { baseUrl: provider.baseUrl, apiKey: provider.apiKey },
+			connection: { baseUrl: provider.baseUrl, endpointMode: provider.endpointMode, apiKey: provider.apiKey },
 			model: entry.model,
 			reasoningEffort: null,
 			promptCacheKey: 'reman-runtime:model-test',

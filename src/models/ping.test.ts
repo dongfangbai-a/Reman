@@ -35,7 +35,8 @@ test('测试模型：用已保存的地址和 key 发一次英文的 ping，不�
 		ok: true, reply: 'Pong!', firstOutputMs: 100, totalMs: 200, usage: { inputTokens: 20, cachedTokens: 0, outputTokens: 3 },
 	});
 	const [request] = requests;
-	assert.deepEqual(request?.connection, { baseUrl: 'http://127.0.0.1:1', apiKey: 'test' });
+	// 地址怎么解析一起带过去：不写 endpointMode 时是 auto。
+	assert.deepEqual(request?.connection, { baseUrl: 'http://127.0.0.1:1', endpointMode: 'auto', apiKey: 'test' });
 	assert.equal(request?.model, 'fake');
 	assert.equal(request?.reasoningEffort, null);
 	assert.deepEqual(request?.input.map(item => (item as { role: string; content: { text: string }[] })).map(item => `${item.role}: ${item.content[0]!.text}`), [
