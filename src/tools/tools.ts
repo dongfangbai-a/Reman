@@ -568,6 +568,8 @@ export class Tools {
 			return { ok: false, result: { output: '参数不是合法的 JSON', isError: true } };
 		}
 		if (typeof args !== 'object' || args === null || Array.isArray(args)) return { ok: false, result: { output: '参数必须是 JSON 对象', isError: true } };
+		const unknown = unknownArgument(tool, args as Record<string, unknown>);
+		if (unknown) return { ok: false, result: { output: unknown, isError: true } };
 		return { ok: true, tool, args: args as Record<string, unknown> };
 	}
 
@@ -578,6 +580,8 @@ export class Tools {
 
 	/** 执行工具，同时给出脚本里拿到的结构化结果（出错时没有）。 */
 	async runWithValue(tool: ITool, context: IToolContext, args: Record<string, unknown>): Promise<{ result: IToolCallResult; value?: unknown }> {
+		const unknown = unknownArgument(tool, args);
+		if (unknown) return { result: { output: this.clipOutput(tool, unknown), isError: true } };
 		let value: unknown;
 		try {
 			value = await tool.execute(context, args);
@@ -611,6 +615,25 @@ export class Tools {
 /** 内置默认是否启用：不能设置的工具总是有。 */
 function builtinEnabled(tool: ITool): boolean {
 	return tool.enabledByDefault !== false;
+}
+
+/**
+ * 参数里有没有 schema 没声明的键。
+ *
+ * 工具只按名字取自己认识的参数，多出来的键会被静默丢掉：把 input 写成 command 时，工具「执行了」却什么也没做，
+ * 而且没有任何线索指向参数写错了，看起来像工具坏了。所以直接报错，并把可用的参数名列出来。
+ *
+ * 没声明 properties 的（自定义工具常见 { type: 'object' }，参数由脚本自己解析）和写了 additionalProperties: true 的
+ * 本来就能收任意参数，不拦。
+ */
+function unknownArgument(tool: ITool, args: Record<string, unknown>): string | undefined {
+	const parameters = tool.parameters as { readonly properties?: Record<string, unknown>; readonly additionalProperties?: unknown };
+	if (parameters.additionalProperties === true) return undefined;
+	const known = Object.keys(parameters.properties ?? {});
+	if (known.length === 0) return undefined;
+	const unknown = Object.keys(args).filter(key => !known.includes(key));
+	if (unknown.length === 0) return undefined;
+	return `没有这个参数：${unknown.join('、')}。${tool.name} 的参数是 ${known.join('、')}。`;
 }
 
 /** 可以选的审批方式：不能设置或不用审批的工具没有。 */
