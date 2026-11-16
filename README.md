@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://github.com/dongfangbai-a/Reman/actions/workflows/ci.yml"><img src="https://github.com/dongfangbai-a/Reman/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT"></a>
-  <img src="https://img.shields.io/badge/node-%E2%89%A524-brightgreen.svg" alt="Node 24 以上">
+  <a href="https://github.com/dongfangbai-a/Reman/releases"><img src="https://img.shields.io/github/v/release/dongfangbai-a/Reman" alt="Release"></a>
 </p>
 
 直观高效的 AI 协作运行时。打开网页即可开始协作，过程一眼可见；同样的任务，跑得更快、花得更少。
