@@ -1,0 +1,57 @@
+{
+	"name": "reman-runtime",
+	"version": "0.1.0",
+	"private": true,
+	"description": "直观高效的 AI 协作运行时",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/dongfangbai-a/Reman.git"
+	},
+	"homepage": "https://github.com/dongfangbai-a/Reman#readme",
+	"bugs": {
+		"url": "https://github.com/dongfangbai-a/Reman/issues"
+	},
+	"keywords": [
+		"ai",
+		"agent",
+		"runtime",
+		"llm",
+		"local-first"
+	],
+	"type": "module",
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"start": "node --disable-warning=ExperimentalWarning src/main.ts",
+		"typecheck": "tsc --noEmit",
+		"test": "node --disable-warning=ExperimentalWarning --test \"src/**/*.test.ts\" \"web/src/**/*.test.ts\"",
+		"web:dev": "npm --prefix web run dev",
+		"web:install": "npm --prefix web install",
+		"web:build": "npm --prefix web run build"
+	},
+	"devDependencies": {
+		"@types/cross-spawn": "6.0.6",
+		"@types/node": "^24.19.2",
+		"typescript": "5.9"
+	},
+	"dependencies": {
+		"@anthropic-ai/sandbox-runtime": "0.0.81",
+		"@jitl/quickjs-wasmfile-release-sync": "0.32.0",
+		"@larksuiteoapi/node-sdk": "1.76.0",
+		"@modelcontextprotocol/client": "2.4.0",
+		"@modelcontextprotocol/server": "2.4.0",
+		"@napi-rs/canvas": "1.0.3",
+		"@vscode/tree-sitter-wasm": "0.3.1",
+		"@xterm/addon-serialize": "0.14.0",
+		"@xterm/headless": "6.0.0",
+		"cross-spawn": "7.0.6",
+		"node-pty": "1.1.0",
+		"openai": "7.53.0",
+		"pdfjs-dist": "6.2.108",
+		"playwright-core": "1.64.1",
+		"quickjs-emscripten-core": "0.32.0",
+		"yaml": "2.9.1"
+	}
+}

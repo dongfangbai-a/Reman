@@ -1,0 +1,19 @@
+node_modules/
+/data/
+
+# 基准测试：仓库里只放脚本、文档和结论（三份 results.json）。
+#   .cache/    可重建（Harbor 与 Python 环境、题目数据、三家离线包）
+#   evidence/  跑完之后的原始数据，删了不可复现
+#   .local/    只在本机的东西，不进仓库
+eval/.cache/
+eval/evidence/
+eval/.local/
+__pycache__/
+
+# 我的 shell 工具把 HOME 指到仓库根目录，bash 会把历史写在这里
+.bash_history
+# 临时输出（测试日志、跑批监控脚本的落盘）统一放这里，不污染仓库根目录
+.tmp/
+# 交接笔记只在本地用，不进仓库
+HANDOFF.md
+eval/.packs/

@@ -1,0 +1,11 @@
+{
+	"currency": "CNY",
+	"unit": 1000000,
+	"note": "每个模型一种价格（标准价，不含峰谷折扣），单位是元/百万 token。单位换算见 unit；加模型只要在这里加一条。",
+	"source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+	"updated": "2026-11-12",
+	"default": "deepseek-flash",
+	"models": {
+		"deepseek-flash": { "hit": 0.02, "miss": 1, "output": 4 }
+	}
+}

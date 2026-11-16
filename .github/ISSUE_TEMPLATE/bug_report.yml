@@ -1,0 +1,49 @@
+name: 缺陷报告
+description: 行为不对、报错、界面不对
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        安全问题不要开公开 issue，走 [SECURITY.md](../SECURITY.md) 里的私下报告。
+        提之前先看 [USAGE.md](../USAGE.md) 和 [DEVELOPMENT.md](../DEVELOPMENT.md) 的检查命令，能自己跑一遍最好。
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 你看到的现象，和你期望的样子
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 怎么复现
+      description: 越具体越好；能稳定复现的步骤最有用
+      placeholder: |
+        1. …
+        2. …
+        3. …
+  - type: input
+    id: version
+    attributes:
+      label: 版本或提交
+      description: 在仓库里跑 `git rev-parse --short HEAD` 的输出
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: 系统
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志、截图或报错
+      description: 终端输出、浏览器控制台的报错。**先把令牌、密钥、本机路径删掉**
+      render: text

@@ -1,0 +1,43 @@
+{
+	"label": "网络搜索",
+	"description": "DeepSeek 接口的网络搜索工具",
+	"defaultPolicy": "allow",
+	"config": [
+		{ "name": "service", "type": "service", "label": "搜索供应商", "description": "提供 DeepSeek 搜索接口的供应商", "required": true }
+	],
+	"tools": [
+		{
+			"name": "web_search",
+			"label": "搜索网页",
+			"description": "搜索网页。",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"query": { "type": "string", "description": "搜索关键词，最多 128 个字符。支持以下语法：site:github.com（限定站点）、-site:example.com（排除站点）、lang:zh,en（限定语言）、after:2025-01-01 和 before:2026（限定发布日期）、\"精确短语\"（精确匹配）、-关键词（排除该词）" },
+					"count": { "type": "integer", "description": "返回结果数量，默认 5，最多 20", "minimum": 1, "maximum": 20 }
+				},
+				"required": ["query"],
+				"additionalProperties": false
+			},
+			"returns": "{ title: string; url: string; siteName: string | null; date: string | null; summary: string }[]",
+			"script": "search.ts",
+			"timeoutSeconds": 120
+		},
+		{
+			"name": "web_fetch",
+			"label": "读取网页",
+			"description": "读取网页，返回标题和 Markdown 格式的正文。",
+			"parameters": {
+				"type": "object",
+				"properties": {
+					"url": { "type": "string", "description": "网页地址，须为 http 或 https" }
+				},
+				"required": ["url"],
+				"additionalProperties": false
+			},
+			"returns": "{ url: string; title: string; content: string; fullContentPath: string | null }",
+			"script": "fetch.ts",
+			"timeoutSeconds": 240
+		}
+	]
+}

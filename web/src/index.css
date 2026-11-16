@@ -1,0 +1,278 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 语义颜色：组件只用这些，深浅色在这里切换。 */
+:root {
+	--c-page: #ffffff;
+	--c-pane: #f7f7f8;
+	--c-rail: #efeff1;
+	--c-raised: #ffffff;
+	--c-hover: rgb(0 0 0 / 0.045);
+	--c-selected: rgb(0 0 0 / 0.08);
+	--c-line: rgb(0 0 0 / 0.09);
+	--c-line-strong: rgb(0 0 0 / 0.16);
+	--c-text: #1d1d1f;
+	--c-text-2: #5f6168;
+	--c-text-3: #8e9098;
+	--c-accent: #2f6fe4;
+	--c-accent-hover: #1f52b5;
+	--c-accent-soft: rgb(47 111 228 / 0.1);
+	--c-on-accent: #ffffff;
+	--c-danger: #d93a3a;
+	--c-danger-soft: rgb(217 58 58 / 0.1);
+	--c-warning: #b7791f;
+	/* 要你处理的事（等审批、接管请求）：柔和的紫色，和蓝色的链接、按钮，绿色的运行、红色的出错都分得开。 */
+	--c-attention: #6e56cf;
+	--c-attention-soft: rgb(110 86 207 / 0.1);
+	--c-success: #1f9254;
+	--c-code: #f4f4f6;
+	/* 分类图表的颜色，按顺序用，相邻两色色弱也能分清。 */
+	--c-series-1: #2a78d6;
+	--c-series-2: #eb6834;
+	--c-series-3: #1baf7a;
+	--c-series-4: #eda100;
+	--c-series-5: #e87ba4;
+	--c-series-6: #008300;
+	--c-series-7: #8a5cf5;
+	color-scheme: light;
+}
+
+.dark {
+	--c-page: #1b1c1f;
+	--c-pane: #202125;
+	--c-rail: #17181a;
+	--c-raised: #26272b;
+	--c-hover: rgb(255 255 255 / 0.05);
+	--c-selected: rgb(255 255 255 / 0.09);
+	--c-line: rgb(255 255 255 / 0.08);
+	--c-line-strong: rgb(255 255 255 / 0.16);
+	--c-text: #e8e8ea;
+	--c-text-2: #a3a5ad;
+	--c-text-3: #74767e;
+	--c-accent: #5b8ff0;
+	--c-accent-hover: #8fb5f7;
+	--c-accent-soft: rgb(91 143 240 / 0.16);
+	--c-on-accent: #ffffff;
+	--c-danger: #ef6464;
+	--c-danger-soft: rgb(239 100 100 / 0.14);
+	--c-warning: #e0a742;
+	--c-attention: #a594f9;
+	--c-attention-soft: rgb(165 148 249 / 0.16);
+	--c-success: #4cbb7f;
+	--c-code: #232428;
+	--c-series-1: #3987e5;
+	--c-series-2: #d95926;
+	--c-series-3: #199e70;
+	--c-series-4: #c98500;
+	--c-series-5: #d55181;
+	--c-series-6: #008300;
+	--c-series-7: #9d7bf0;
+	color-scheme: dark;
+}
+
+@theme inline {
+	--color-page: var(--c-page);
+	--color-pane: var(--c-pane);
+	--color-rail: var(--c-rail);
+	--color-raised: var(--c-raised);
+	--color-hover: var(--c-hover);
+	--color-selected: var(--c-selected);
+	--color-line: var(--c-line);
+	--color-line-strong: var(--c-line-strong);
+	--color-fg: var(--c-text);
+	--color-fg-2: var(--c-text-2);
+	--color-fg-3: var(--c-text-3);
+	--color-accent: var(--c-accent);
+	--color-accent-hover: var(--c-accent-hover);
+	--color-accent-soft: var(--c-accent-soft);
+	--color-on-accent: var(--c-on-accent);
+	--color-danger: var(--c-danger);
+	--color-danger-soft: var(--c-danger-soft);
+	--color-warning: var(--c-warning);
+	--color-attention: var(--c-attention);
+	--color-attention-soft: var(--c-attention-soft);
+	--color-success: var(--c-success);
+	--color-code: var(--c-code);
+	--color-series-1: var(--c-series-1);
+	--color-series-2: var(--c-series-2);
+	--color-series-3: var(--c-series-3);
+	--color-series-4: var(--c-series-4);
+	--color-series-5: var(--c-series-5);
+	--color-series-6: var(--c-series-6);
+	--color-series-7: var(--c-series-7);
+	--font-sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+	--font-mono: ui-monospace, "Cascadia Code", Consolas, "SF Mono", monospace;
+}
+
+/* 页面正好填满窗口，自己不滚动；需要滚动的区域各自滚动。 */
+html, body, #root {
+	height: 100%;
+	overflow: hidden;
+}
+
+body {
+	margin: 0;
+	background: var(--c-page);
+	color: var(--c-text);
+	font-family: var(--font-sans);
+	font-size: 14px;
+	/* 行高取整像素：小数行高（14px × 1.55 = 21.7px）让每次换行都把内容总高改变小数像素，
+	   贴底或滚动锚定时浏览器把滚动位置对齐到设备像素，没换行的内容就会上下跳 1 像素。 */
+	line-height: round(1.55em, 1px);
+	-webkit-font-smoothing: antialiased;
+}
+
+/* 用任意字号（text-[13px] 这类）的元素按自己的字号重算整像素行高；写了 leading-* 的照 leading-*。 */
+@layer base {
+	[class*="text-["] { line-height: round(1.55em, 1px); }
+}
+
+/*
+ * 悬停色叠在原来的底色上面，底色不变：写成 hover:bg-hover-layer。浮在内容上的按钮（「回到底部」、收起的审批细栏）用它：
+ * 悬停色是半透明的，hover:bg-hover 会把不透明的底色整个换掉，后面滚过去的字就透上来了。
+ */
+@utility bg-hover-layer {
+	background-image: linear-gradient(var(--c-hover), var(--c-hover));
+}
+
+/*
+ * 基础组件（按钮、菜单、状态点、头像、输入框）的默认样式放在 components 层，调用处传的 h-7、size-6、hover:text-danger 这类在 utilities 层，
+ * 总能盖过默认的，不用加 !。都写成工具类放在一起时，同一属性的两个类谁生效看 Tailwind 生成 CSS 的顺序（按类名排），和写的先后无关：
+ * h-7 排在 h-8 前面、size-6 排在 size-8 前面，盖不过。web/scripts/check-class-overrides.mjs 检查这类写了不生效的地方。
+ * 任意字号（text-[13px]）放在这里时，类名里没有 text-[，上面 base 层的整像素行高认不出，各自写上。
+ */
+@layer components {
+	.button {
+		@apply inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-colors;
+		@apply disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-accent;
+		line-height: round(1.55em, 1px);
+	}
+	.button-primary {
+		@apply bg-accent text-on-accent hover:bg-accent-hover;
+	}
+	.button-secondary {
+		@apply border border-line-strong bg-raised hover:bg-hover;
+	}
+	.button-ghost {
+		@apply hover:bg-hover;
+	}
+	.button-danger {
+		@apply bg-danger text-white enabled:hover:opacity-90;
+	}
+	.icon-button {
+		@apply inline-flex size-8 items-center justify-center rounded-md text-fg-2 transition-colors hover:bg-hover hover:text-fg disabled:opacity-40;
+	}
+	/* 下拉菜单、右键菜单的浮层（ui/Menu.tsx）。 */
+	.menu-panel {
+		@apply z-50 max-h-[70vh] min-w-56 overflow-y-auto rounded-lg border border-line bg-raised p-1 shadow-lg;
+	}
+	/* 成员状态圆点（ui/StatusDot.tsx）。 */
+	.status-dot {
+		@apply block size-2.5 shrink-0 rounded-full;
+	}
+	/* 成员头像（ui/Avatar.tsx）：图片和名字首字共用。 */
+	.avatar {
+		@apply shrink-0 rounded-md;
+	}
+	/* 输入框（ui/Dialog.tsx 的 INPUT_CLASS）。 */
+	.field-input {
+		@apply h-8 w-full rounded-md border border-line-strong bg-page px-2.5 text-[13px] outline-none focus:border-accent disabled:opacity-60;
+		line-height: round(1.55em, 1px);
+	}
+	/* 多行输入框，边框和 .field-input 一样。 */
+	.field-textarea {
+		@apply block w-full resize-none rounded-md border border-line-strong bg-page px-2.5 py-1.5 text-[13px] leading-relaxed outline-none focus:border-accent;
+	}
+	/* 灰色小标签：「内置」「只读」「外部事件 · 来源」等。 */
+	.tag {
+		@apply shrink-0 rounded border border-line px-1.5 text-[11px] leading-4 text-fg-3;
+	}
+}
+
+/* AI 消息的 Markdown。 */
+.markdown > :first-child { margin-top: 0; }
+.markdown > :last-child { margin-bottom: 0; }
+.markdown p, .markdown ul, .markdown ol, .markdown blockquote, .markdown table, .markdown pre { margin: 0.45em 0; }
+.markdown ul { list-style: disc; padding-left: 1.5em; }
+.markdown ol { list-style: decimal; padding-left: 1.5em; }
+.markdown li + li { margin-top: 0.15em; }
+.markdown h1, .markdown h2, .markdown h3, .markdown h4 { font-weight: 600; margin: 0.8em 0 0.35em; line-height: round(1.35em, 1px); }
+.markdown h1 { font-size: 1.3em; }
+.markdown h2 { font-size: 1.18em; }
+.markdown h3 { font-size: 1.06em; }
+.markdown a { color: var(--c-accent); text-decoration: underline; text-underline-offset: 2px; }
+.markdown blockquote { border-left: 3px solid var(--c-line-strong); padding-left: 0.8em; color: var(--c-text-2); }
+.markdown code { font-family: var(--font-mono); font-size: 0.9em; background: var(--c-code); border-radius: 4px; padding: 0.1em 0.35em; }
+.markdown pre code { background: none; padding: 0; font-size: 12.5px; }
+/* 行内代码换了等宽字体，基线位置不同，行高再跟正文一样就会把那一行撑高小数像素；行高设小些留在正文那一行里面。 */
+.markdown :not(pre) > code { line-height: 1; }
+.markdown table { border-collapse: collapse; display: block; overflow-x: auto; }
+.markdown th, .markdown td { border: 1px solid var(--c-line); padding: 0.3em 0.7em; }
+.markdown th { background: var(--c-pane); font-weight: 600; }
+.markdown hr { border: none; border-top: 1px solid var(--c-line); margin: 0.8em 0; }
+
+/* Shiki 双主题：浅色用默认颜色，深色切到 --shiki-dark。 */
+.dark .shiki, .dark .shiki span { color: var(--shiki-dark) !important; }
+.shiki { background: transparent !important; }
+
+/* 拖动分隔线时：整页都是左右箭头光标，不选中文字。 */
+body.resizing,
+body.resizing * {
+	cursor: col-resize !important;
+	user-select: none !important;
+}
+
+/*
+ * 终端画面的滚动条，和 xterm 自己的滚动条一个样子：方的、没有箭头、轨道透明，滑块是终端前景色的 20%，悬停时 40%。
+ * Chromium 里设了 scrollbar-color 仍会画箭头，所以用 ::-webkit-scrollbar；不支持它的浏览器用标准属性。
+ */
+.terminal-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.terminal-scroll::-webkit-scrollbar-track, .terminal-scroll::-webkit-scrollbar-corner { background: transparent; }
+.terminal-scroll::-webkit-scrollbar-thumb { background: rgb(212 212 212 / 0.2); }
+.terminal-scroll::-webkit-scrollbar-thumb:hover { background: rgb(212 212 212 / 0.4); }
+@supports not selector(::-webkit-scrollbar) {
+	.terminal-scroll { scrollbar-width: thin; scrollbar-color: rgb(212 212 212 / 0.2) transparent; }
+}
+
+/*
+ * 时间线、对话里居中的内容列，最宽 900px。左边距向下取整到设备像素：
+ * 居中时边距是 (宽度 - 900) / 2，拖宽度时会落在半个像素上；浏览器画灰底块的边和画里面的字对齐像素的方式不同，
+ * 字会相对灰底块左右来回跳 1 像素。只取整到 CSS 像素不够：150% 缩放时 1 个 CSS 像素是 1.5 个设备像素。
+ * --device-px 由 lib/devicePixel.ts 按缩放比例设置。不支持 round() 的浏览器照常居中。
+ */
+:root { --device-px: 1px; }
+@layer components {
+	.center-column { width: 100%; max-width: 900px; margin-inline: auto; }
+	@supports (margin-left: round(down, 1px, 1px)) {
+		.center-column { margin-left: max(0px, round(down, (100% - 900px) / 2, var(--device-px))); margin-right: 0; }
+	}
+}
+
+/*
+ * 还在进行中的文字（时间线最后那行「运行中」）：灰字上一道亮一些的高光从左往右扫过，扫一眼就知道还在工作。
+ * 系统设置了减少动态效果时不扫，就是普通灰字。
+ */
+.shimmer-text {
+	background: linear-gradient(90deg, var(--c-text-3) 0%, var(--c-text-3) 40%, var(--c-text) 50%, var(--c-text-3) 60%, var(--c-text-3) 100%);
+	background-size: 250% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: shimmer-text 2.2s linear infinite;
+}
+@keyframes shimmer-text {
+	from { background-position: 100% 0; }
+	to { background-position: 0% 0; }
+}
+/* 工作台里刚从链接打开的标签闪一下：强调色的底和细边，淡出。时长和 tabs.ts 的 TAB_FLASH_MS 一样。 */
+.tab-flash {
+	animation: tab-flash 1.2s ease-out forwards;
+}
+@keyframes tab-flash {
+	0%, 35% { background: var(--c-accent-soft); box-shadow: inset 0 0 0 1px var(--c-accent); }
+	100% { background: transparent; box-shadow: inset 0 0 0 1px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.shimmer-text { animation: none; background: none; color: var(--c-text-3); }
+}
