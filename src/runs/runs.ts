@@ -4,6 +4,7 @@ import { errorMessage, invalid } from '../common/errors.ts';
 import { clipEnd } from '../common/text.ts';
 import type { Database } from '../database/database.ts';
 import type { IMember, Members } from '../members/members.ts';
+import { cacheKeyFor } from '../models/cacheKey.ts';
 import { ModelError, type IModelClient, type IModelResponse, type IModelRequest, type ModelOutputStart } from '../models/client.ts';
 import type { IResolvedModel, ModelConfig } from '../models/config.ts';
 import type { IModelOutputItem, IOptimization, IOptimizationRequestRecord, Timeline, TimelineItem } from '../timeline/timeline.ts';
@@ -154,6 +155,8 @@ export class Runs {
 	private readonly models: ModelConfig;
 	private readonly client: IModelClient;
 	private readonly resources: Resources;
+	/** 算 prompt_cache_key 用的盐：同一个数据目录恒定，不同数据目录不同。 */
+	private readonly cacheSalt: string;
 	private readonly active = new Map<string, IActiveRun>();
 	/** 运行结束时的压缩失败的时间。 */
 	private readonly optimizeFailedAt = new Map<string, number>();
@@ -167,7 +170,7 @@ export class Runs {
 
 	constructor(
 		db: Database, events: EventHub, members: Members, timeline: Timeline, context: ContextBuilder, optimizer: Optimizer,
-		executor: ToolExecutor, snapshots: ContextSnapshots, models: ModelConfig, client: IModelClient, resources: Resources,
+		executor: ToolExecutor, snapshots: ContextSnapshots, models: ModelConfig, client: IModelClient, resources: Resources, cacheSalt: string,
 	) {
 		this.db = db;
 		this.events = events;
@@ -180,6 +183,7 @@ export class Runs {
 		this.models = models;
 		this.client = client;
 		this.resources = resources;
+		this.cacheSalt = cacheSalt;
 	}
 
 	/** 开始调度：先处理启动前留下的唤醒，之后每当时间线有新内容就检查是否要开始运行。 */
@@ -822,7 +826,7 @@ export class Runs {
 			model: model.entry.model,
 			reasoningEffort: member.reasoningEffort,
 			maxOutputTokens: model.entry.maxOutputTokens,
-			promptCacheKey: `reman-runtime:${member.memberId}`,
+			promptCacheKey: cacheKeyFor(this.cacheSalt, member.memberId),
 		};
 	}
 

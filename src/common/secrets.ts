@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 /** 加密后的值的前缀。 */
@@ -29,6 +29,14 @@ export class Secrets {
 	/** 只在内存里的钥匙，测试用：重启后用它加密的值都解不开。 */
 	static temporary(): Secrets {
 		return new Secrets(randomBytes(KEY_BYTES));
+	}
+
+	/**
+	 * 这台运行时的标识：由钥匙派生，和钥匙一样每个数据目录不同，但反推不出钥匙。
+	 * 发 prompt_cache_key 时当盐用（见 models/cacheKey.ts）：不同数据目录之间不会撞上同一个 key。
+	 */
+	get cacheSalt(): string {
+		return createHash('sha256').update(this.key).update('\nprompt-cache').digest('hex').slice(0, 32);
 	}
 
 	/** 加密；空值和已经加密的原样返回。 */

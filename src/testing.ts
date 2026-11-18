@@ -5,6 +5,8 @@ import type { TestContext } from 'node:test';
 import { runtimeDirectories } from './dataDirectory.ts';
 import type { IMemberDefinition } from './members/definition.ts';
 import type { IMember } from './members/members.ts';
+import { cacheKeyFor } from './models/cacheKey.ts';
+import type { IModelRequest } from './models/client.ts';
 import { ModelConfig } from './models/config.ts';
 import { Runtime, type IRuntimeOptions } from './runtime.ts';
 
@@ -42,7 +44,27 @@ export function leaveContext(runtime: Runtime, memberId: string): void {
 
 /** 建一个 AI 成员（写成员文件夹）。 */
 export function addAi(runtime: Runtime, name: string, definition: IMemberDefinition = {}): IMember {
-	return runtime.memberFolders.create(name, { definition });
+	const member = runtime.memberFolders.create(name, { definition });
+	rememberMember(runtime, member.memberId);
+	return member;
+}
+
+/**
+ * prompt_cache_key 和成员的对应。请求本身只带 key，不带成员 ID（那是算 key 的输入，不该进请求），
+ * 假模型要按成员决定回什么，就在这里反查。测试和脚本里用，运行时用不到。
+ */
+const cacheKeyOwners = new Map<string, string>();
+
+/** 记下一个成员的 key 归谁。addAi 会调；自己建成员的地方（脚本）要显式调一次。 */
+export function rememberMember(runtime: Runtime, memberId: string): void {
+	cacheKeyOwners.set(cacheKeyFor(runtime.cacheSalt, memberId), memberId);
+}
+
+/** 这条请求是哪个成员发的。没登记过就报错，免得静默当成别人。 */
+export function memberOfRequest(request: IModelRequest): string {
+	const memberId = cacheKeyOwners.get(request.promptCacheKey);
+	if (memberId === undefined) throw new Error(`没登记过这个 prompt_cache_key 属于哪个成员：${request.promptCacheKey}`);
+	return memberId;
 }
 
 /** 测试用的模型配置：一个供应商 test，默认用第一个模型。 */

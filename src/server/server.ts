@@ -147,7 +147,9 @@ export class RuntimeServer {
 			models: await fetchUpstreamModels(models.provider(providerId!)),
 		}));
 		// 测试一个已添加的模型能不能用：发一次请求，不算运行。不能用时也正常返回，带上原因。
-		this.route('POST', '/v1/models/test', (_, body) => pingModel(models, modelClient, { provider: string(body, 'provider'), model: string(body, 'model') }));
+		this.route('POST', '/v1/models/test', (_, body) => pingModel(
+			models, modelClient, { provider: string(body, 'provider'), model: string(body, 'model') }, this.runtime.cacheSalt,
+		));
 
 		this.route('GET', '/v1/members', () => ({ members: members.list() }));
 		// 真人直接建；AI 成员建成员文件夹，可以同时给出 member.json 的内容、提示词、审批方式和工作目录。

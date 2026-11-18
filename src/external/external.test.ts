@@ -7,7 +7,7 @@ import { formatLocalTime } from '../common/text.ts';
 import type { IModelClient, IModelRequest, IModelResponse } from '../models/client.ts';
 import type { Runtime } from '../runtime.ts';
 import { RuntimeServer } from '../server/server.ts';
-import { addAi, leaveContext, temporaryDirectory, testModels, testRuntime, timelineOf, withoutNumbers } from '../testing.ts';
+import { addAi, leaveContext, memberOfRequest, temporaryDirectory, testModels, testRuntime, timelineOf, withoutNumbers } from '../testing.ts';
 import { EventLog, type EventLogEntry } from './eventLog.ts';
 
 const SERVER = fileURLToPath(new URL('../mcp/testServer.ts', import.meta.url));
@@ -24,7 +24,7 @@ class IdleModel implements IModelClient {
 
 	/** 这个成员第一次请求里收到的内容（用户角色的消息）。 */
 	received(memberId: string): string[] {
-		const request = this.requests.find(item => item.promptCacheKey === `reman-runtime:${memberId}`);
+		const request = this.requests.find(item => memberOfRequest(item) === memberId);
 		return withoutNumbers(timelineOf(request?.input ?? [])).map(raw => raw as { role?: string; content?: { text?: string }[] })
 			.filter(item => item.role === 'user').map(item => (item.content ?? []).map(part => part.text ?? '').join(''));
 	}

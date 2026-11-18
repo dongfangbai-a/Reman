@@ -12,7 +12,7 @@ import { runtimeDirectories } from '../src/dataDirectory.ts';
 import { requestBody, type IFunctionTool, type IModelClient, type IModelRequest, type IModelResponse } from '../src/models/client.ts';
 import { estimateItemTokens, estimateTokens } from '../src/runs/tokens.ts';
 import { Runtime } from '../src/runtime.ts';
-import { testModels } from '../src/testing.ts';
+import { memberOfRequest, rememberMember, testModels } from '../src/testing.ts';
 import { MCP_SERVER, SAMPLES, type ISample, type ISampleContext, type Reply } from './contextSampleList.ts';
 
 /** 输入的一项属于哪一段：开头（身份和规则；成员设定、记忆、运行环境和通讯录）、时间线、压缩请求最后的任务说明。 */
@@ -160,7 +160,7 @@ async function runSample(name: string, sample: ISample): Promise<ISampleRecord> 
 
 	const client: IModelClient = {
 		async respond(request: IModelRequest): Promise<IModelResponse> {
-			const memberId = request.promptCacheKey.replace('reman-runtime:', '');
+			const memberId = memberOfRequest(request);
 			const record = capture(memberId, request);
 			const reply = (request.textFormat ? proposals : replies).get(memberId)?.shift();
 			await Promise.resolve();
@@ -210,7 +210,11 @@ async function runSample(name: string, sample: ISample): Promise<ISampleRecord> 
 	const human = runtime.members.createHuman('张三');
 	const context: ISampleContext = {
 		runtime, human,
-		ai: (memberName, definition = {}, prompt) => runtime.memberFolders.create(memberName, { definition, prompt }),
+		ai: (memberName, definition = {}, prompt) => {
+			const member = runtime.memberFolders.create(memberName, { definition, prompt });
+			rememberMember(runtime, member.memberId);
+			return member;
+		},
 		reply: (member, ...items) => replies.set(member.memberId, [...replies.get(member.memberId) ?? [], ...items]),
 		proposal: (member, ...items) => proposals.set(member.memberId, [...proposals.get(member.memberId) ?? [], ...items]),
 		say(target, text, options = {}) {

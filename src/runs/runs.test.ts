@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ModelError, type IModelClient, type IModelRequest, type IModelResponse, type OutputListener } from '../models/client.ts';
-import { addAi, memoryOf, testRuntime, testModels, timelineOf, withoutNumbers } from '../testing.ts';
+import { addAi, memberOfRequest, memoryOf, testRuntime, testModels, timelineOf, withoutNumbers } from '../testing.ts';
 import type { IModelOutputItem } from '../timeline/timeline.ts';
 import { distribute } from './optimizer.ts';
 import type { IContextUsageInfo } from './runs.ts';
@@ -16,7 +16,7 @@ class FakeModel implements IModelClient {
 	script: Script = () => [];
 
 	async respond(request: IModelRequest): Promise<IModelResponse> {
-		const memberId = request.promptCacheKey.replace('reman-runtime:', '');
+		const memberId = memberOfRequest(request);
 		const index = this.requests.filter(item => item.memberId === memberId).length;
 		this.requests.push({ ...request, memberId });
 		await Promise.resolve();
