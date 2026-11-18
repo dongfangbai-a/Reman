@@ -65,12 +65,12 @@ export interface ITaskResult {
 }
 
 /**
- * 终端的变动，都和「成员在等用户交还」有关：released 是用户接管后把终端交还给 AI；closed、exited 是成员还在等的时候
- * 终端被关闭了、里面的程序退出了，等不到交还了。
+ * 终端的变动，都和「成员在等用户交还」有关：released 是用户接管后把终端交还给 AI；declined 是用户不用接管，直接让成员继续；
+ * closed、exited 是成员还在等的时候终端被关闭了、里面的程序退出了，等不到交还了。
  */
 export interface ITerminalEvent {
 	readonly terminalId: string;
-	readonly event: 'released' | 'closed' | 'exited';
+	readonly event: 'released' | 'declined' | 'closed' | 'exited';
 	/** closed 时：谁关的，user 是用户，否则是成员 ID。 */
 	readonly closedBy?: string;
 	/** exited 时：退出码。 */

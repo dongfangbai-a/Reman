@@ -115,6 +115,8 @@ export class Describer {
 				if (event.request !== null) return `你曾请求用户接管终端 ${event.terminalId}：${event.request}。用户已交还终端，你可以继续操作。`;
 				if (event.waiting) return `你此前使用终端 ${event.terminalId} 时用户正在操作，现在用户已交还终端，你可以继续操作。`;
 				return `用户曾接管终端 ${event.terminalId}，现已交还给你。`;
+			case 'declined':
+				return `你曾请求用户接管终端 ${event.terminalId}${event.request === null ? '' : `：${event.request}`}。用户没有接管，你可以继续操作。`;
 			case 'closed':
 			case 'exited': {
 				// 成员还在等用户交还，终端却没了：写明它在等什么、现在怎样了。

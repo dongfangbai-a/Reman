@@ -1037,6 +1037,21 @@ test('公网访问：配置的域名能访问，写请求接受 https 的 Origin
 	assert.equal((await call('/v1/members', { Authorization: 'Bearer secret', Host: 'human.tail1234.ts.net' })).status, 403);
 });
 
+test('不用接管的接口：缺成员时 400，终端不在了也照常返回', async t => {
+	const runtime = testRuntime(t);
+	const server = new RuntimeServer(runtime, 'secret');
+	const base = `http://127.0.0.1:${await server.listen()}`;
+	t.after(async () => {
+		await server.close();
+		await runtime.close();
+	});
+	const post = (body: unknown) => fetch(`${base}/v1/terminals/T_NOPE/decline`, { method: 'POST', headers: { Authorization: 'Bearer secret', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+	assert.equal((await post({})).status, 400);
+	const response = await post({ memberId: 'M_NONE' });
+	assert.equal(response.status, 200);
+	assert.deepEqual(await response.json(), {});
+});
+
 test('终端上限的设置接口：读默认值、改完立刻生效、越界报错', async t => {
 	const directory = temporaryDirectory(t);
 	const runtime = testRuntime(t, { terminalSettingsPath: join(directory, 'terminals.json') });

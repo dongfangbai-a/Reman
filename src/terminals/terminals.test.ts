@@ -231,6 +231,42 @@ test('用户占用时成员硬输入会被拒绝，接管请求不该被误撤�
 	assert.deepEqual(released(second.memberId), [{ terminalId, event: 'released', request: '输入 sudo 密码', waiting: true }]);
 });
 
+test('用户不用接管：只撤这个成员的请求并唤醒它继续，同一个终端上别人的请求不动', { skip: !isBash }, async t => {
+	const { runtime, first, second, terminal } = setup(t);
+	const terminalId = /\[终端 (T_\w+)/.exec(await terminal(first.memberId, {}))![1]!;
+	const requests = () => runtime.terminals.get(terminalId).takeoverRequests.map(({ memberId, request }) => ({ memberId, request }));
+	const terminalEvents = (memberId: string) => runtime.timeline.all(memberId).flatMap(item => item.kind === 'terminal_event' ? [{ event: item.event, wakes: item.wakes }] : []);
+	await terminal(first.memberId, { terminal_id: terminalId, ask_user: '输入 sudo 密码' });
+	await terminal(second.memberId, { terminal_id: terminalId, ask_user: '确认删掉 export/tmp' });
+	assert.equal(requests().length, 2);
+
+	runtime.terminals.decline(terminalId, first.memberId);
+	assert.deepEqual(requests(), [{ memberId: second.memberId, request: '确认删掉 export/tmp' }]);
+	assert.deepEqual(terminalEvents(first.memberId).at(-1), { event: { terminalId, event: 'declined', request: '输入 sudo 密码', waiting: true }, wakes: true });
+
+	// 重复撤不报错，也不再记事件。
+	const count = runtime.timeline.all(first.memberId).length;
+	runtime.terminals.decline(terminalId, first.memberId);
+	assert.equal(runtime.timeline.all(first.memberId).length, count);
+
+	// 交还时只唤醒还在等的 second，不再管 first。
+	runtime.terminals.takeover(terminalId);
+	runtime.terminals.release(terminalId);
+	assert.equal(terminalEvents(first.memberId).filter(item => item.event.event === 'released').length, 0);
+	assert.equal(terminalEvents(second.memberId).filter(item => item.event.event === 'released').length, 1);
+});
+
+test('decline 的成员已经删除时只摘请求，不记事件', { skip: !isBash }, async t => {
+	const { runtime, first, second, terminal } = setup(t);
+	const terminalId = /\[终端 (T_\w+)/.exec(await terminal(first.memberId, {}))![1]!;
+	await terminal(second.memberId, { terminal_id: terminalId, ask_user: '输入 sudo 密码' });
+	runtime.db.run('UPDATE members SET deleted_at = ? WHERE member_id = ?', Date.now(), second.memberId);
+	const count = runtime.timeline.all(second.memberId).length;
+	runtime.terminals.decline(terminalId, second.memberId);
+	assert.deepEqual(runtime.terminals.get(terminalId).takeoverRequests, []);
+	assert.equal(runtime.timeline.all(second.memberId).length, count);
+});
+
 test('关闭正在执行命令的终端：shell 和命令都结束，不留进程', { skip: !isBash }, async t => {
 	const { directory, first, terminal } = setup(t);
 	const shellFile = join(directory, 'shell-pid.txt').replace(/\\/g, '/');

@@ -371,6 +371,21 @@ export class Terminals {
 		this.update(session, { takeoverRequests: session.info.takeoverRequests.filter(item => item.memberId !== memberId) });
 	}
 
+	/**
+	 * 用户不用接管：撤掉这个成员请用户接管的请求，记一条 declined 唤醒它继续；同一个终端上其他成员的请求不动。
+	 * 终端已经没了、或者没有这条请求时什么都不做。
+	 */
+	decline(terminalId: string, memberId: string): ITerminalInfo | undefined {
+		const session = this.sessions.get(terminalId);
+		const item = session?.info.takeoverRequests.find(entry => entry.memberId === memberId);
+		if (!session || !item) return session?.info;
+		session.waiting.delete(memberId);
+		if (this.members.get(memberId)?.deleted === false) {
+			this.timeline.appendTerminalEvent(memberId, { terminalId, event: 'declined', request: item.request, waiting: true });
+		}
+		return this.update(session, { takeoverRequests: session.info.takeoverRequests.filter(entry => entry.memberId !== memberId) });
+	}
+
 	/** 成员请用户接管，request 是要用户做什么。交还时唤醒它。 */
 	requestTakeover(terminalId: string, memberId: string, request: string): ITerminalInfo {
 		const session = this.require(terminalId);

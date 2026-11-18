@@ -46,6 +46,22 @@ export function TerminalDetail({ terminal, memberById }: { terminal: ITerminalIn
 		}
 	};
 
+	// 不用接管：撤掉这个成员的请求，它收到消息后继续。终端没了就当页面过期，刷新一下列表。
+	const decline = async (memberId: string) => {
+		setBusy(true);
+		setError(undefined);
+		try {
+			const result = await api<{ terminal?: ITerminalInfo }>('POST', `/v1/terminals/${terminal.terminalId}/decline`, { memberId });
+			const updated = result.terminal;
+			if (updated) queryClient.setQueryData<ITerminalInfo[]>(queryKeys.terminals, list => list?.map(item => item.terminalId === updated.terminalId ? updated : item));
+			else void queryClient.invalidateQueries({ queryKey: queryKeys.terminals });
+		} catch (caught) {
+			setError(errorMessage(caught));
+		} finally {
+			setBusy(false);
+		}
+	};
+
 	return (
 		<>
 			{/* 在用的不写谁在用：标签的颜色和右边的按钮已经表示了。 */}
@@ -74,10 +90,16 @@ export function TerminalDetail({ terminal, memberById }: { terminal: ITerminalIn
 				</div>
 				{/* 成员请你接管时写明要你做什么，交出去后消失。 */}
 				{running && terminal.takeoverRequests.map(item => (
-					<div key={item.memberId} className="basis-full">
+					<div key={item.memberId} className="flex basis-full flex-wrap items-baseline gap-x-1">
 						<span className="font-medium text-accent">{memberById.get(item.memberId)?.name ?? '未知成员'}</span>
-						<span className="text-fg-2"> 请你接管：</span>
-						<span className="text-fg">{item.request}</span>
+						<span className="text-fg-2">请你接管：</span>
+						<span className="min-w-0 text-fg">{item.request}</span>
+						{/* 低频、非主路径：做成文字链，不给按钮的重量。 */}
+						<button
+							type="button" disabled={busy}
+							className="ml-auto -my-1 -mr-1.5 shrink-0 rounded px-1.5 py-1 text-fg-3 hover:text-fg-2 hover:underline underline-offset-2"
+							onClick={() => void decline(item.memberId)}
+						>不用接管</button>
 					</div>
 				))}
 				{error && <div className="basis-full text-danger">操作失败：{error}</div>}
