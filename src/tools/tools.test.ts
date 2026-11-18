@@ -656,7 +656,8 @@ test('终端的等待转为后台任务时读过一次输出：调用之前就�
 	runtime.terminals.input(runtime.terminals.create(ai.memberId, process.cwd()).terminalId, `sleep 1; echo d$((1+1))\n`, { memberId: ai.memberId });
 	model.script = [() => [call('c2', 'terminal', { terminal_id: terminalId(), idle_ms: 3000 })]];
 	runtime.runs.start();
-	await until(async () => (await runtime.terminals.screen(terminalId())).data.includes('d2'));
+	// 整行等于 d2 才算数：CI 的提示符里有 git 提交号（例如 ((3d2301d...))），用 includes 会提前命中。
+	await until(async () => (await runtime.terminals.screen(terminalId())).data.split('\n').some(line => line.trim() === 'd2'));
 
 	const calledAt = Date.now();
 	send('等它做完');
