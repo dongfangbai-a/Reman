@@ -2,7 +2,7 @@ import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
 import { api } from './client.ts';
 import { queryKeys } from './keys.ts';
-import type { IDirectoryListing, IPortableGitProgressEvent, IRemoteStatus, ISandboxStatus, IShell, ITerminalInfo, ITerminalOutputEvent, PortableGitState } from './types.ts';
+import type { IDirectoryListing, IPortableGitProgressEvent, IRemoteStatus, ISandboxStatus, IShell, ITerminalInfo, ITerminalLimits, ITerminalOutputEvent, PortableGitState } from './types.ts';
 
 export interface IShellEnvironment {
 	readonly portableGit: PortableGitState;
@@ -18,6 +18,13 @@ export function useShellEnvironment() {
 	return useQuery({
 		queryKey: queryKeys.portableGit,
 		queryFn: () => api<IShellEnvironment>('GET', '/v1/portable-git'),
+	});
+}
+
+export function useTerminalLimits() {
+	return useQuery({
+		queryKey: queryKeys.terminalLimits,
+		queryFn: () => api<{ limits: ITerminalLimits }>('GET', '/v1/terminals/limits'),
 	});
 }
 

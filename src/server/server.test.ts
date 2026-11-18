@@ -1036,3 +1036,24 @@ test('公网访问：配置的域名能访问，写请求接受 https 的 Origin
 	runtime.tunnel.update({ hostnames: [] });
 	assert.equal((await call('/v1/members', { Authorization: 'Bearer secret', Host: 'human.tail1234.ts.net' })).status, 403);
 });
+
+test('终端上限的设置接口：读默认值、改完立刻生效、越界报错', async t => {
+	const directory = temporaryDirectory(t);
+	const runtime = testRuntime(t, { terminalSettingsPath: join(directory, 'terminals.json') });
+	const server = new RuntimeServer(runtime, 'secret');
+	const base = `http://127.0.0.1:${await server.listen()}`;
+	t.after(async () => {
+		await server.close();
+		await runtime.close();
+	});
+	const limits = async () => (await (await fetch(`${base}/v1/terminals/limits`, { headers: { Authorization: 'Bearer secret' } })).json()) as { limits: { maxAiTerminals: number } };
+	const put = (value: number) => fetch(`${base}/v1/terminals/limits`, {
+		method: 'PUT', headers: { Authorization: 'Bearer secret', 'Content-Type': 'application/json' }, body: JSON.stringify({ maxAiTerminals: value }),
+	});
+	assert.equal((await limits()).limits.maxAiTerminals, 16);
+	assert.deepEqual(await (await put(4)).json(), { limits: { maxAiTerminals: 4, problem: null } });
+	assert.equal((await limits()).limits.maxAiTerminals, 4);
+	runtime.terminals.setMaxAiTerminals(16);
+	assert.equal((await put(99)).status, 400);
+	assert.equal((await limits()).limits.maxAiTerminals, 16);
+});

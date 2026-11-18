@@ -10,12 +10,12 @@ import type { EventHub } from '../common/events.ts';
 import { invalid, notFound } from '../common/errors.ts';
 import { newId, wrongKind } from '../common/ids.ts';
 import { clipMiddle } from '../common/text.ts';
+import { DEFAULT_MAX_TERMINALS, MAX_HUMAN_TERMINALS } from './limits.ts';
+import type { ITerminalLimits, TerminalSettings } from './settings.ts';
 import type { Members } from '../members/members.ts';
 import { NO_PAGER, type IShell, type ShellLocator } from '../shells/shells.ts';
 import type { Timeline } from '../timeline/timeline.ts';
 
-/** 最多同时有多少个运行中的终端。已退出的只剩画面，留到有人关闭，不算在内。 */
-const MAX_TERMINALS = 16;
 /** 运行时退出时最多等终端里的进程结束多久。 */
 const SHUTDOWN_WAIT_MS = 5000;
 /**
@@ -178,20 +178,50 @@ export class Terminals {
 	private readonly shells: ShellLocator;
 	private readonly members: Members;
 	private readonly timeline: Timeline;
+	private readonly settings: TerminalSettings;
 	private readonly sessions = new Map<string, ISession>();
 	/** 正在结束的终端：运行时退出时等它们结束。 */
 	private readonly killing = new Set<Promise<void>>();
 
-	constructor(events: EventHub, shells: ShellLocator, members: Members, timeline: Timeline) {
+	constructor(events: EventHub, shells: ShellLocator, members: Members, timeline: Timeline, settings: TerminalSettings) {
 		this.events = events;
 		this.shells = shells;
 		this.members = members;
 		this.timeline = timeline;
+		this.settings = settings;
+	}
+
+	/** 终端数量的全局上限（AI 成员合计；用户自己建的另有固定上限）。 */
+	get limits(): ITerminalLimits {
+		return this.settings.limits;
+	}
+
+	/** 改 AI 成员的上限，写回数据目录里的 terminals.json。 */
+	setMaxAiTerminals(value: unknown): ITerminalLimits {
+		return this.settings.setMaxAiTerminals(value);
 	}
 
 	create(createdBy: string | null, cwd: string): ITerminalInfo {
 		if (!isAbsolute(cwd) || !existsSync(cwd) || !statSync(cwd).isDirectory()) throw invalid(`起始目录不存在：${cwd}`);
-		if ([...this.sessions.values()].filter(session => session.info.status === 'running').length >= MAX_TERMINALS) throw invalid(`运行中的终端最多 ${MAX_TERMINALS} 个，请先关闭不再使用的终端`);
+		// 上限都只算 shell 还在跑的终端：退出了（哪怕还没关掉）就不占名额。
+		const running = [...this.sessions.values()].filter(session => session.info.status === 'running');
+		if (createdBy === null) {
+			if (running.filter(session => session.info.createdBy === null).length >= MAX_HUMAN_TERMINALS) {
+				throw invalid(`已创建且未退出的终端已达上限（${MAX_HUMAN_TERMINALS} 个）`);
+			}
+		} else {
+			// 成员自己的上限：只算它建的。
+			const mine = running.filter(session => session.info.createdBy === createdBy);
+			const limit = this.members.get(createdBy)?.maxTerminals ?? DEFAULT_MAX_TERMINALS;
+			if (mine.length >= limit) {
+				throw invalid(`已创建且未退出的终端已达上限（${limit} 个）：${mine.map(session => session.info.terminalId).join('、')}`);
+			}
+			// AI 成员合计的上限：所有成员建的都算在一起。
+			const aiLimit = this.settings.limits.maxAiTerminals;
+			if (running.filter(session => session.info.createdBy !== null).length >= aiLimit) {
+				throw invalid(`AI 成员已创建且未退出的终端已达上限（${aiLimit} 个）`);
+			}
+		}
 		const shell = this.shells.current();
 		const terminalId = newId('T', id => this.sessions.has(id));
 		// Windows 上用 node-pty 自带的新版 ConPTY（conpty.dll 和 OpenConsole.exe），不用系统的；node-pty 把这个选项标为实验性。
@@ -327,7 +357,18 @@ export class Terminals {
 
 	takeover(terminalId: string): ITerminalInfo {
 		const session = this.require(terminalId);
-		return session.info.controller === 'user' ? session.info : this.update(session, { controller: 'user' });
+		if (session.info.controller === 'user') return session.info;
+		// 接管后网页端不再显示「请你接管」；waiting 里那条要留着，交还时还得唤醒在等的成员。
+		return this.update(session, { controller: 'user', takeoverRequests: [] });
+	}
+
+	/** 成员又在往终端里输入、或关掉终端：它不等了，撤掉它请用户接管的请求。只读不算，那是边等边看。 */
+	cancelTakeover(terminalId: string, memberId: string): void {
+		const session = this.sessions.get(terminalId);
+		if (!session) return;
+		session.waiting.delete(memberId);
+		if (!session.info.takeoverRequests.some(item => item.memberId === memberId)) return;
+		this.update(session, { takeoverRequests: session.info.takeoverRequests.filter(item => item.memberId !== memberId) });
 	}
 
 	/** 成员请用户接管，request 是要用户做什么。交还时唤醒它。 */

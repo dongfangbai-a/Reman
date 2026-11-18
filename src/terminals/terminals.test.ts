@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -8,12 +8,15 @@ import { runtimeDirectories } from '../dataDirectory.ts';
 import { Runtime } from '../runtime.ts';
 import { addAi, realPath } from '../testing.ts';
 import { ShellLocator } from '../shells/shells.ts';
+import { DEFAULT_MAX_TERMINALS } from './limits.ts';
 
 const isBash = new ShellLocator(() => undefined).current().kind === 'bash';
 
-function setup(t: TestContext) {
+function setup(t: TestContext, limits?: { maxAiTerminals: number }) {
 	const directory = mkdtempSync(join(tmpdir(), 'reman-runtime-terminal-'));
-	const runtime = new Runtime(':memory:', { ...runtimeDirectories(directory), portableGitDirectory: null });
+	const terminalSettingsPath = join(directory, 'terminals.json');
+	if (limits) writeFileSync(terminalSettingsPath, `${JSON.stringify(limits)}\n`);
+	const runtime = new Runtime(':memory:', { ...runtimeDirectories(directory), portableGitDirectory: null, terminalSettingsPath });
 	t.after(async () => {
 		await runtime.close();
 		await removeDirectory(directory);
@@ -185,10 +188,47 @@ test('交还时只唤醒在等的成员：请过用户接管的写明请求；�
 	assert.ok(Date.now() - askedAt < 5_000);
 	assert.deepEqual(runtime.terminals.get(terminalId).takeoverRequests.map(({ memberId, request }) => ({ memberId, request })), [{ memberId: second.memberId, request: '输入 sudo 密码' }]);
 	runtime.terminals.takeover(terminalId);
+	// 接管后网页端不再显示请求，但交还时仍然唤醒它。
+	assert.deepEqual(runtime.terminals.get(terminalId).takeoverRequests, []);
 	runtime.terminals.release(terminalId);
 	assert.deepEqual(released(second.memberId), [{ event: { terminalId, event: 'released', request: '输入 sudo 密码', waiting: true }, wakes: true }]);
 	assert.equal(released(first.memberId).length, 1);
 	assert.deepEqual(runtime.terminals.get(terminalId).takeoverRequests, []);
+});
+
+test('请用户接管后只读不算把终端拿回来：提示留着；输入才撤销，撤销后交还不再唤醒它', { skip: !isBash }, async t => {
+	const { runtime, first, second, terminal } = setup(t);
+	const terminalId = /\[终端 (T_\w+)/.exec(await terminal(first.memberId, {}))![1]!;
+	const requests = () => runtime.terminals.get(terminalId).takeoverRequests.map(({ memberId, request }) => ({ memberId, request }));
+	assert.match(await terminal(second.memberId, { terminal_id: terminalId, ask_user: '输入 sudo 密码' }), /已请用户接管/);
+	assert.deepEqual(requests(), [{ memberId: second.memberId, request: '输入 sudo 密码' }]);
+
+	// 只读：边等边看，提示保留。
+	await terminal(second.memberId, { terminal_id: terminalId });
+	assert.deepEqual(requests(), [{ memberId: second.memberId, request: '输入 sudo 密码' }]);
+
+	// 输入：把终端拿回来自己用，请求撤销。
+	await terminal(second.memberId, { terminal_id: terminalId, input: 'echo hi\n' });
+	assert.deepEqual(requests(), []);
+
+	// 撤销之后再接管、交还，不会再唤醒它。
+	runtime.terminals.takeover(terminalId);
+	runtime.terminals.release(terminalId);
+	assert.deepEqual(runtime.timeline.all(second.memberId).filter(item => item.kind === 'terminal_event' && item.event.event === 'released'), []);
+});
+
+test('用户占用时成员硬输入会被拒绝，接管请求不该被误撤销', { skip: !isBash }, async t => {
+	const { runtime, first, second, terminal } = setup(t);
+	const terminalId = /\[终端 (T_\w+)/.exec(await terminal(first.memberId, {}))![1]!;
+	const released = (memberId: string) => runtime.timeline.all(memberId).flatMap(item => item.kind === 'terminal_event' && item.event.event === 'released' ? [item.event] : []);
+	await terminal(second.memberId, { terminal_id: terminalId, ask_user: '输入 sudo 密码' });
+	runtime.terminals.takeover(terminalId);
+	assert.deepEqual(runtime.terminals.get(terminalId).takeoverRequests, []);
+
+	// 用户正占用：输入被拒绝，它还在等，交还时要带着请求文案唤醒它。
+	assert.match(await terminal(second.memberId, { terminal_id: terminalId, input: 'echo hi\n' }), /用户正在操作终端/);
+	runtime.terminals.release(terminalId);
+	assert.deepEqual(released(second.memberId), [{ terminalId, event: 'released', request: '输入 sudo 密码', waiting: true }]);
 });
 
 test('关闭正在执行命令的终端：shell 和命令都结束，不留进程', { skip: !isBash }, async t => {
@@ -274,4 +314,66 @@ test('等待被中止时照常返回终端和已有的输出，写明命令可�
 	assert.equal(closed.split('\n')[0], `[终端 ${closedId}，已被用户关闭]`);
 	assert.deepEqual(outputLines(closed), ['mark43']);
 	assert.deepEqual(runtime.terminals.list(), []);
+});
+
+test('成员建终端有上限：默认 3 个，满了之后新建被拦下，关掉一个就能再建', { skip: !isBash }, async t => {
+	const { first, second, terminal } = setup(t);
+	const created: string[] = [];
+	for (let index = 0; index < DEFAULT_MAX_TERMINALS; index++) {
+		created.push(/\[终端 (T_\w+)/.exec(await terminal(first.memberId, {}))![1]!);
+	}
+	const blocked = await terminal(first.memberId, {});
+	assert.match(blocked, new RegExp(`已创建且未退出的终端已达上限（${DEFAULT_MAX_TERMINALS} 个）：${created.join('、')}`));
+	// 关掉一个，名额就腾出来了。
+	await terminal(first.memberId, { terminal_id: created[0]!, close: true });
+	assert.match(await terminal(first.memberId, {}), /\[终端 T_\w+/);
+	// 另一个成员有自己的额度。
+	assert.match(await terminal(second.memberId, {}), /\[终端 T_\w+/);
+});
+
+test('上限按成员配置：member.json 里写了 maxTerminals 就按它算', { skip: !isBash }, async t => {
+	const { runtime, terminal } = setup(t);
+	const strict = addAi(runtime, '严格', { maxTerminals: 1 });
+	assert.match(await terminal(strict.memberId, {}), /\[终端 T_\w+/);
+	assert.match(await terminal(strict.memberId, {}), /已创建且未退出的终端已达上限（1 个）：T_\w+/);
+});
+
+test('用户自己建的终端不算进成员的额度', { skip: !isBash }, async t => {
+	const { runtime, directory, first, terminal } = setup(t);
+	for (let index = 0; index < DEFAULT_MAX_TERMINALS + 1; index++) runtime.terminals.create(null, directory);
+	for (let index = 0; index < DEFAULT_MAX_TERMINALS; index++) {
+		assert.match(await terminal(first.memberId, {}), /\[终端 T_\w+/);
+	}
+});
+
+test('已经退出的终端不占名额：shell 结束就释放，不用关掉', { skip: !isBash }, async t => {
+	const { runtime, directory, first, terminal } = setup(t);
+	const ids = [0, 1, 2].map(() => runtime.terminals.create(first.memberId, directory).terminalId);
+	// 三个都开着，这时新建被拦下。
+	assert.match(await terminal(first.memberId, {}), /已创建且未退出的终端已达上限（3 个）/);
+	runtime.terminals.input(ids[0]!, 'exit\n', { memberId: first.memberId });
+	for (let index = 0; index < 50 && runtime.terminals.get(ids[0]!)?.status !== 'exited'; index++) await delay(100);
+	assert.equal(runtime.terminals.get(ids[0]!)?.status, 'exited');
+	// 退出后不占名额，不关也能再建。
+	assert.match(await terminal(first.memberId, {}), /\[终端 T_\w+/);
+});
+
+test('AI 成员合计的上限：不同成员建的算在一起，配置的小值立刻生效', { skip: !isBash }, async t => {
+	const { runtime, directory, first, second } = setup(t, { maxAiTerminals: 2 });
+	runtime.terminals.create(first.memberId, directory);
+	runtime.terminals.create(second.memberId, directory);
+	assert.throws(() => runtime.terminals.create(first.memberId, directory), /AI 成员已创建且未退出的终端已达上限（2 个）/);
+	// 用户自己建的不算在 AI 的额度里。
+	assert.ok(runtime.terminals.create(null, directory).terminalId);
+	// 上限改了立刻按新值算。
+	assert.deepEqual(runtime.terminals.setMaxAiTerminals(3), { maxAiTerminals: 3, problem: null });
+	assert.ok(runtime.terminals.create(second.memberId, directory).terminalId);
+});
+
+test('真人自己建的终端最多 20 个', { skip: !isBash }, async t => {
+	const { runtime, directory } = setup(t);
+	for (let index = 0; index < 20; index++) runtime.terminals.create(null, directory);
+	assert.throws(() => runtime.terminals.create(null, directory), /已创建且未退出的终端已达上限（20 个）/);
+	// AI 成员的名额不受影响。
+	assert.ok(runtime.terminals.create(addAi(runtime, '晚到').memberId, directory).terminalId);
 });

@@ -74,7 +74,11 @@ export function TerminalDetail({ terminal, memberById }: { terminal: ITerminalIn
 				</div>
 				{/* 成员请你接管时写明要你做什么，交出去后消失。 */}
 				{running && terminal.takeoverRequests.map(item => (
-					<div key={item.memberId} className="basis-full text-accent">{memberById.get(item.memberId)?.name ?? '未知成员'} 请你接管：{item.request}</div>
+					<div key={item.memberId} className="basis-full">
+						<span className="font-medium text-accent">{memberById.get(item.memberId)?.name ?? '未知成员'}</span>
+						<span className="text-fg-2"> 请你接管：</span>
+						<span className="text-fg">{item.request}</span>
+					</div>
 				))}
 				{error && <div className="basis-full text-danger">操作失败：{error}</div>}
 			</div>

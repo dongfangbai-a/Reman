@@ -1,6 +1,7 @@
 import { errorMessage } from '../common/errors.ts';
 import { isRecord, parseJson } from '../common/json.ts';
 import { memberDescriptionProblem } from '../common/names.ts';
+import { MAX_TERMINALS_PER_MEMBER } from '../terminals/limits.ts';
 
 /** 成员文件夹里的文件名。 */
 export const DEFINITION_FILE = 'member.json';
@@ -29,9 +30,11 @@ export interface IMemberDefinition {
 	readonly tools?: readonly string[];
 	/** 时间感知：收到的内容带不带收到时的时间；省略时带。 */
 	readonly timeAwareness?: boolean;
+	/** 最多同时保留几个自己建的终端（只算这个成员建的、还没关闭的）；省略时 3，最多 16。 */
+	readonly maxTerminals?: number;
 }
 
-const FIELDS = ['description', 'model', 'reasoning', 'directMessage', 'groupInvite', 'skills', 'tools', 'timeAwareness'];
+const FIELDS = ['description', 'model', 'reasoning', 'directMessage', 'groupInvite', 'skills', 'tools', 'timeAwareness', 'maxTerminals'];
 const LIST_MAX_LENGTH = 200;
 const LIST_ITEM_MAX_LENGTH = 128;
 
@@ -97,6 +100,13 @@ export function parseDefinition(text: string): DefinitionParseResult {
 		if (typeof timeAwareness === 'boolean') definition.timeAwareness = timeAwareness;
 		else issues.push('timeAwareness 必须是 true 或 false');
 	}
+	if ('maxTerminals' in value) {
+		const maxTerminals = value['maxTerminals'];
+		const valid = typeof maxTerminals === 'number' && Number.isInteger(maxTerminals)
+			&& maxTerminals >= 1 && maxTerminals <= MAX_TERMINALS_PER_MEMBER;
+		if (valid) definition.maxTerminals = maxTerminals as number;
+		else issues.push(`maxTerminals 必须是 1 到 ${MAX_TERMINALS_PER_MEMBER} 的整数`);
+	}
 	return issues.length > 0 ? { issues } : { definition };
 }
 
@@ -111,6 +121,7 @@ export function serializeDefinition(definition: IMemberDefinition): string {
 	if (definition.skills) output['skills'] = definition.skills;
 	if (definition.tools) output['tools'] = definition.tools;
 	if (definition.timeAwareness !== undefined) output['timeAwareness'] = definition.timeAwareness;
+	if (definition.maxTerminals !== undefined) output['maxTerminals'] = definition.maxTerminals;
 	return `${JSON.stringify(output, null, 2)}\n`;
 }
 

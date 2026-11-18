@@ -1,3 +1,4 @@
+import { DEFAULT_MAX_TERMINALS } from '../../../src/terminals/limits.ts';
 import type { IMember, IMemberDefinition, IToolInfo, MemberRuleMode, ToolPolicy } from '../api/types.ts';
 
 /** AI 成员表单的内容。model 是「供应商\n模型」，空表示默认模型；reasoning 空表示不指定。 */
@@ -17,6 +18,8 @@ export interface IAiForm {
 	readonly groupMemberIds: readonly string[];
 	/** 时间感知：收到的内容带不带收到时的时间，默认带。 */
 	readonly timeAwareness: boolean;
+	/** 最多同时保留几个自己建的终端，默认 3。 */
+	readonly maxTerminals: number;
 	/** 用指定的工作目录；false 时用运行时分配的默认目录，workingDirectory 不保存。 */
 	readonly customDirectory: boolean;
 	readonly workingDirectory: string;
@@ -24,7 +27,7 @@ export interface IAiForm {
 
 export const EMPTY_FORM: IAiForm = {
 	name: '', description: '', model: '', reasoning: '', prompt: '', tools: {}, skills: [],
-	dmMode: 'none', dmMemberIds: [], groupMode: 'all', groupMemberIds: [], timeAwareness: true, customDirectory: false, workingDirectory: '',
+	dmMode: 'none', dmMemberIds: [], groupMode: 'all', groupMemberIds: [], timeAwareness: true, maxTerminals: DEFAULT_MAX_TERMINALS, customDirectory: false, workingDirectory: '',
 };
 
 export function modelKey(provider: string, model: string): string {
@@ -45,6 +48,7 @@ export function fromMember(member: IMember, tools: readonly IToolInfo[] | undefi
 		groupMode: member.groupInvite.mode,
 		groupMemberIds: member.groupInvite.memberIds,
 		timeAwareness: member.timeAwareness,
+		maxTerminals: member.maxTerminals,
 		customDirectory: !!member.workingDirectory,
 		workingDirectory: member.workingDirectory ?? '',
 	};
@@ -76,6 +80,7 @@ export function toDefinition(form: IAiForm, nameOf: (memberId: string) => string
 	if (form.groupMode === 'none') definition.groupInvite = 'none';
 	if (form.groupMode === 'allow') definition.groupInvite = { allow: form.groupMemberIds.map(nameOf) };
 	if (form.groupMode === 'deny') definition.groupInvite = { deny: form.groupMemberIds.map(nameOf) };
+	if (form.maxTerminals !== DEFAULT_MAX_TERMINALS) definition.maxTerminals = form.maxTerminals;
 	if (!form.timeAwareness) definition.timeAwareness = false;
 	// 技能和启用的工具都写明，以后改新成员的默认设置不影响这个成员。工具列表还没取到时不写工具。
 	definition.skills = [...form.skills].sort();

@@ -4,6 +4,7 @@ export type { IActivityCall, IMemberActivity, IUsage, IUsageGroup, IUsageTotals,
 export type { IDirectoryListing } from '../../../src/server/directories.ts';
 export type { IGroup, IGroupMember } from '../../../src/groups/groups.ts';
 export type { IMemberDefinition, MemberRuleDefinition } from '../../../src/members/definition.ts';
+export type { ITerminalLimits } from '../../../src/terminals/settings.ts';
 export type { IMemberFolderState, IMemberFoldersSnapshot } from '../../../src/members/folders.ts';
 export type { IMemberSection, MemberOverview, MemberResult } from '../../../src/members/memberPage.ts';
 export type { IMember, MemberRuleMode, MemberType } from '../../../src/members/members.ts';
