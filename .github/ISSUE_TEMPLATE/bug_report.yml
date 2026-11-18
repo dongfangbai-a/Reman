@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         安全问题不要开公开 issue，走 [SECURITY.md](../SECURITY.md) 里的私下报告。
-        提之前先看 [USAGE.md](../USAGE.md) 和 [DEVELOPMENT.md](../DEVELOPMENT.md) 的检查命令，能自己跑一遍最好。
+        提之前先看 [CONFIG.md](../CONFIG.md) 和 [DEVELOPMENT.md](../DEVELOPMENT.md) 的检查命令，能自己跑一遍最好。
   - type: textarea
     id: what
     attributes:

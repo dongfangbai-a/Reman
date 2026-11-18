@@ -1,6 +1,6 @@
-# 使用与配置
+# 配置参考
 
-运行时的数据目录、模型、成员、工具和外部事件怎么配。怎么启动见 [README.md](README.md)，接口见 [API.md](API.md)。
+运行时的数据目录、模型、成员、工具和外部事件的配置项与格式。怎么启动见 [README.md](README.md)，接口见 [API.md](API.md)，使用上的机制和建议见 [NOTES.md](NOTES.md)。
 
 ## 数据目录在哪
 

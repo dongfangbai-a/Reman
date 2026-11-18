@@ -14,7 +14,7 @@ npm run web:build      # 构建网页端，运行时直接提供 web/dist
 npm start              # 默认 127.0.0.1:6001，--port 改端口
 ```
 
-数据目录默认在本机的应用数据目录（Windows 是 `%LOCALAPPDATA%\Reman`，macOS 是 `~/Library/Application Support/Reman`），见 [USAGE.md](USAGE.md)；开发时用 `--data-dir` 指到临时目录，别动自己的数据。
+数据目录默认在本机的应用数据目录（Windows 是 `%LOCALAPPDATA%\Reman`，macOS 是 `~/Library/Application Support/Reman`），见 [CONFIG.md](CONFIG.md)；开发时用 `--data-dir` 指到临时目录，别动自己的数据。
 
 ## 检查
 
