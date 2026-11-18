@@ -178,7 +178,14 @@ export class Runtime {
 	/** HTTP 服务监听的端口，成员的浏览器不能访问；还没监听时是 undefined。 */
 	serverPort: number | undefined;
 
+	/**
+	 * 算 prompt_cache_key 用的盐（见 models/cacheKey.ts）：由数据目录的 secret-key 派生，
+	 * 同一个数据目录恒定、不同数据目录不同。没有 secrets 时（测试里）是空串。
+	 */
+	readonly cacheSalt: string;
+
 	constructor(databasePath: string, options: IRuntimeOptions) {
+		this.cacheSalt = options.secrets?.cacheSalt ?? '';
 		this.events = new EventHub();
 		this.db = Database.open(databasePath, this.events);
 		const { workspacesDirectory, eventRoutesDirectory, eventLogsDirectory } = options;
@@ -318,7 +325,7 @@ export class Runtime {
 		const optimizer = new Optimizer(this.db, this.timeline, context, snapshots, this.memories, this.messages, this.plans, options.recentRatio);
 		this.modelClient = options.modelClient ?? new OpenAIModelClient();
 		this.runs = new Runs(
-			this.db, this.events, this.members, this.timeline, context, optimizer, executor, snapshots, this.models, this.modelClient, resources,
+			this.db, this.events, this.members, this.timeline, context, optimizer, executor, snapshots, this.models, this.modelClient, resources, this.cacheSalt,
 		);
 		this.work = new Work(this.members, this.runs, this.tasks, this.events, options.now ?? Date.now);
 		this.memberFolders = new MemberFolders(

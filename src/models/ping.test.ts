@@ -31,7 +31,7 @@ test('测试模型：用已保存的地址和 key 发一次英文的 ping，不�
 		output: [{ type: 'reasoning', summary: [] }, { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: ' Pong! ' }] }],
 		usage: { inputTokens: 20, cachedTokens: 0, outputTokens: 3 },
 	}, requests);
-	assert.deepEqual(await pingModel(testModels(), client, ref, clock()), {
+	assert.deepEqual(await pingModel(testModels(), client, ref, 'test-salt', clock()), {
 		ok: true, reply: 'Pong!', firstOutputMs: 100, totalMs: 200, usage: { inputTokens: 20, cachedTokens: 0, outputTokens: 3 },
 	});
 	const [request] = requests;
@@ -56,13 +56,13 @@ test('测试模型：用已保存的地址和 key 发一次英文的 ping，不�
 
 test('测试模型：回复里没有文字时 reply 为空；服务没报告开始输出和用量时是 null', async () => {
 	const client: IModelClient = { respond: async () => ({ output: [{ type: 'reasoning', summary: [] }], usage: undefined }) };
-	assert.deepEqual(await pingModel(testModels(), client, ref, clock()), { ok: true, reply: '', firstOutputMs: null, totalMs: 100, usage: null });
+	assert.deepEqual(await pingModel(testModels(), client, ref, 'test-salt', clock()), { ok: true, reply: '', firstOutputMs: null, totalMs: 100, usage: null });
 });
 
 test('测试模型：请求出错、供应商或模型不存在时正常返回原因，不抛出', async () => {
 	const failing = fakeClient(new ModelError('http_401', '模型服务返回 401：Incorrect API key', false));
-	assert.deepEqual(await pingModel(testModels(), failing, ref), { ok: false, error: '模型服务返回 401：Incorrect API key' });
+	assert.deepEqual(await pingModel(testModels(), failing, ref, 'test-salt'), { ok: false, error: '模型服务返回 401：Incorrect API key' });
 	const unused = fakeClient(new Error('不该请求'));
-	assert.deepEqual(await pingModel(testModels(), unused, { provider: 'test', model: 'other' }), { ok: false, error: '供应商 test 未添加模型 other' });
-	assert.deepEqual(await pingModel(testModels(), unused, { provider: 'nope', model: 'fake' }), { ok: false, error: 'models.json 中不存在供应商 nope' });
+	assert.deepEqual(await pingModel(testModels(), unused, { provider: 'test', model: 'other' }, 'test-salt'), { ok: false, error: '供应商 test 未添加模型 other' });
+	assert.deepEqual(await pingModel(testModels(), unused, { provider: 'nope', model: 'fake' }, 'test-salt'), { ok: false, error: 'models.json 中不存在供应商 nope' });
 });

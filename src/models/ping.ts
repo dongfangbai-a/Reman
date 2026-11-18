@@ -1,4 +1,5 @@
 import { errorMessage } from '../common/errors.ts';
+import { cacheKeyFor } from './cacheKey.ts';
 import type { IModelClient, IModelUsage } from './client.ts';
 import type { IModelRef, ModelConfig } from './config.ts';
 
@@ -24,7 +25,9 @@ export type PingResult =
  * 测试一个已添加的模型现在能不能用（网页端设计「设置 → 模型」的「测试」）：用已保存的地址和 key，和成员运行时一样发一次请求。
  * 不带工具、不设思考强度、不限输出长度、不重试；不算运行，什么都不记下来。
  */
-export async function pingModel(config: ModelConfig, client: IModelClient, ref: IModelRef, now: () => number = () => performance.now()): Promise<PingResult> {
+export async function pingModel(
+	config: ModelConfig, client: IModelClient, ref: IModelRef, cacheSalt: string, now: () => number = () => performance.now(),
+): Promise<PingResult> {
 	const signal = AbortSignal.timeout(TIMEOUT_MS);
 	const started = now();
 	let firstOutputAt: number | undefined;
@@ -37,7 +40,7 @@ export async function pingModel(config: ModelConfig, client: IModelClient, ref: 
 			connection: { baseUrl: provider.baseUrl, endpointMode: provider.endpointMode, apiKey: provider.apiKey },
 			model: entry.model,
 			reasoningEffort: null,
-			promptCacheKey: 'reman-runtime:model-test',
+			promptCacheKey: cacheKeyFor(cacheSalt, 'model-test'),
 			input: [message('developer', INSTRUCTIONS), message('user', 'ping')],
 			tools: [],
 		}, signal, outputStarted, outputStarted);
