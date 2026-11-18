@@ -1,6 +1,6 @@
 # 开发
 
-运行时和网页端的开发说明。安装与启动见 [README.md](README.md)，配置见 [USAGE.md](USAGE.md)，接口见 [API.md](API.md)。
+运行时和网页端的开发说明。安装与启动见 [README.md](README.md)，配置见 [CONFIG.md](CONFIG.md)，接口见 [API.md](API.md)。
 
 ## 检查和测试
 
