@@ -24,7 +24,7 @@ test('成员文件夹：新建、更新；有误时保持上一次的配置；�
 		张三: 'error:名字已被真人「张三」使用',
 		沈安: 'warning:私聊名单中的「不存在」不是现有的 AI 成员，已忽略',
 		陈屿: 'ok:',
-		顾宁: 'error:无法识别的字段「foo」；可用字段：description、model、reasoning、directMessage、groupInvite、skills、tools、timeAwareness',
+		顾宁: 'error:无法识别的字段「foo」；可用字段：description、model、reasoning、directMessage、groupInvite、skills、tools、timeAwareness、maxTerminals',
 	});
 	const host = runtime.members.findByName('沈安')!;
 	const alice = runtime.members.findByName('陈屿')!;

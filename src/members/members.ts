@@ -7,6 +7,7 @@ import { assertMemberName, memberDescriptionProblem } from '../common/names.ts';
 import type { Database } from '../database/database.ts';
 import type { IModelRef } from '../models/config.ts';
 import { ruleNames, type IMemberDefinition } from './definition.ts';
+import { DEFAULT_MAX_TERMINALS } from '../terminals/limits.ts';
 
 /** human 是真人，ai 是 AI 成员。 */
 export type MemberType = 'human' | 'ai';
@@ -42,6 +43,8 @@ export interface IMember {
 	readonly skills: readonly string[];
 	/** 时间感知：收到的内容带不带收到时的时间（运行时设计第 5 部分「时间」）。成员文件没写时开着；真人不运行模型，是 true。 */
 	readonly timeAwareness: boolean;
+	/** 最多同时保留几个自己建的终端；成员文件没写时是 DEFAULT_MAX_TERMINALS，真人不建终端。 */
+	readonly maxTerminals: number;
 	/** 头像内容的哈希；null 表示没有头像。 */
 	readonly avatar: string | null;
 	/** 工作目录（绝对路径）；null 表示用运行时分配的默认目录。 */
@@ -412,6 +415,7 @@ export class Members {
 			tools: row.tools_json === null ? null : JSON.parse(row.tools_json) as string[],
 			skills: row.skills_json === null ? this.defaultSkills() : JSON.parse(row.skills_json) as string[],
 			timeAwareness: row.type !== 'ai' || definition.timeAwareness !== false,
+			maxTerminals: definition.maxTerminals ?? DEFAULT_MAX_TERMINALS,
 			avatar: row.avatar_hash,
 			workingDirectory: row.working_directory,
 			defaultWorkingDirectory: row.type === 'ai' ? join(this.workspacesDirectory, row.member_id) : null,

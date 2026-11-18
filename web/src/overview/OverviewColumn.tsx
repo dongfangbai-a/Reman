@@ -41,6 +41,22 @@ export function OverviewColumn({ page }: { page: Page }) {
 	const set = usePreferences(state => state.set);
 	const phone = useIsPhone();
 	const focus = page === 'members' ? center : page === 'perspective' && timelineOpen ? timelineMember : undefined;
+	const queryClient = useQueryClient();
+	const [declining, setDeclining] = useState<string>();
+	const [declineError, setDeclineError] = useState<string>();
+	// 不用接管：撤掉这条请求，成员收到消息后继续。
+	const decline = async (terminalId: string, memberId: string) => {
+		setDeclining(`${terminalId}:${memberId}`);
+		setDeclineError(undefined);
+		try {
+			await api('POST', `/v1/terminals/${terminalId}/decline`, { memberId });
+			await queryClient.invalidateQueries({ queryKey: queryKeys.terminals });
+		} catch (caught) {
+			setDeclineError(errorMessage(caught));
+		} finally {
+			setDeclining(undefined);
+		}
+	};
 	const memberById = new Map((members.data ?? []).map(member => [member.memberId, member]));
 	const focused = focus === undefined ? undefined : memberById.get(focus);
 	const planMember = focused?.type === 'ai' && !focused.purged ? focused : undefined;
@@ -56,6 +72,7 @@ export function OverviewColumn({ page }: { page: Page }) {
 				<div className="min-h-0 space-y-3 overflow-y-auto px-3 pb-3">
 					{inbox.isPending && <div className="px-1 text-[13px] text-fg-3">正在加载…</div>}
 					{inbox.error && <div className="px-1 text-[13px] text-danger">加载失败：{inbox.error.message}</div>}
+					{declineError && <div className="px-1 text-[13px] text-danger">操作失败：{declineError}</div>}
 					{!inbox.isPending && !inbox.error && list.length === 0 && (
 						// 下面有计划时只占一行，和小标题、计划的文字对齐；只有待处理时居中。
 						<div className={clsx('text-[13px] text-fg-3', planMember ? 'px-1' : 'py-8 text-center')}>暂无待处理的事项</div>
@@ -72,13 +89,20 @@ export function OverviewColumn({ page }: { page: Page }) {
 								{item.kind === 'approval' ? <ApprovalCard approval={item.approval} /> : (
 									<div className="space-y-2 rounded-lg border border-line bg-raised px-3 py-2.5 text-[13px]">
 										<div>请你接管终端 <span className="font-mono text-xs">{item.terminalId}</span>：{item.request}</div>
-										{/* 在终端里打字就自动接管，这里只负责带你过去。手机上一次只开一栏。 */}
-										<Button onClick={() => {
-												openTerminal(item.terminalId);
-												if (phone) set({ overviewOpen: false });
-											}}>
-											<SquareTerminal size={14} />打开终端
-										</Button>
+										{/* 两个动作分在两端：打开终端是主路径，不用接管低频，离远些免得点错。在终端里打字就自动接管。 */}
+										<div className="flex items-center justify-between gap-2">
+											<Button onClick={() => {
+													openTerminal(item.terminalId);
+													if (phone) set({ overviewOpen: false });
+												}}>
+												<SquareTerminal size={14} />打开终端
+											</Button>
+											<button
+												type="button" disabled={declining === item.key}
+												className="rounded px-1.5 py-1 text-xs text-fg-3 hover:text-fg-2 hover:underline underline-offset-2"
+												onClick={() => void decline(item.terminalId, item.memberId)}
+											>不用接管</button>
+										</div>
 									</div>
 								)}
 							</div>

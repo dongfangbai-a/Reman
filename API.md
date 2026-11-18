@@ -336,12 +336,15 @@
 | 接口 | 说明 |
 |---|---|
 | `GET /v1/terminals` | 全部终端 |
-| `POST /v1/terminals` | `{ "cwd": "...", "createDirectory": true }` 新建，`cwd` 不填时用用户目录。前端建的终端一开始由用户操作。运行中的终端最多 16 个，已退出的不算。`cwd` 不存在、但上级目录存在时：没带 `createDirectory` 报错，代码是 `directory_missing`，网页端据此请用户确认；带了就先建这一级文件夹。只建最后一级，上级目录也不存在时照常报错。AI 建终端不会自动建文件夹 |
+| `POST /v1/terminals` | `{ "cwd": "...", "createDirectory": true }` 新建，`cwd` 不填时用用户目录。前端建的终端一开始由用户操作。上限只算 shell 还在跑的终端（退出了就不占名额）：每位成员自己的（`maxTerminals`，默认 3）、AI 成员合计（默认 16，见 `GET /v1/terminals/limits`）、用户自己建的 20 个，用户建的不进 AI 的额度。超了返回 `invalid_argument`。`cwd` 不存在、但上级目录存在时：没带 `createDirectory` 报错，代码是 `directory_missing`，网页端据此请用户确认；带了就先建这一级文件夹。只建最后一级，上级目录也不存在时照常报错。AI 建终端不会自动建文件夹 |
+| `GET /v1/terminals/limits` | 终端数量的全局上限：`{ "limits": { "maxAiTerminals": 16, "problem": null } }`。`problem` 是数据目录的 `terminals.json` 写错时的原因，这时按默认值 16 处理 |
+| `PUT /v1/terminals/limits` | `{ "maxAiTerminals": 8 }`，1 到 32，改完立即生效，落盘到 `terminals.json` |
 | `GET /v1/terminals/:terminalId/screen` | 屏幕快照；之后的输出由事件流的 `terminal.output` 推送。运行时在 Windows 上时带 `windowsPty`（`backend`、`buildNumber`），前端的 xterm.js 照着设置；其他系统是 `null`。终端查询由运行时回复，前端的 xterm.js 不要回复 |
 | `POST /v1/terminals/:terminalId/input` | `{ "data": "..." }` 输入 |
 | `POST /v1/terminals/:terminalId/resize` | `{ "cols": 100, "rows": 30 }`。只用于前端建的终端；AI 成员建的终端尺寸固定，改大小报错 |
 | `POST /v1/terminals/:terminalId/takeover` | 用户接管成员的终端，这时成员只能读不能输入 |
 | `POST /v1/terminals/:terminalId/release` | 交给 AI 成员：唤醒在等这个终端的成员；没人在等时给建它的成员记一条不唤醒的，见运行时设计「终端的接管」 |
+| `POST /v1/terminals/:terminalId/decline` | `{ "memberId": "M_..." }` 用户不用接管：撤掉这个成员请你接管的请求，给它记一条 `declined` 让它继续；同一个终端上其他成员的请求不动。终端已经关掉时照常返回，没有这条请求时原样返回 |
 | `POST /v1/terminals/:terminalId/close` | 关闭。已退出的终端不会自动清除，留到关闭为止 |
 | `GET /v1/portable-git` | PortableGit 的安装状态，以及当前用的 shell |
 | `POST /v1/portable-git/install` | 开始下载安装，进度由 `portableGit.progress` 推送 |

@@ -1,11 +1,13 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import clsx from 'clsx';
 import { useQueryClient } from '@tanstack/react-query';
 import { CircleAlert, Ellipsis } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api/client.ts';
 import { queryKeys } from '../api/keys.ts';
-import { useSandbox, useShellEnvironment, type IShellEnvironment } from '../api/system.ts';
-import type { ISandboxNetwork, ISandboxStatus, IShell, PortableGitState, SandboxNetworkMode } from '../api/types.ts';
+import { useSandbox, useShellEnvironment, useTerminalLimits, type IShellEnvironment } from '../api/system.ts';
+import type { ISandboxNetwork, ISandboxStatus, IShell, ITerminalLimits, PortableGitState, SandboxNetworkMode } from '../api/types.ts';
+import { MAX_AI_TERMINALS } from '../../../src/terminals/limits.ts';
 import { errorMessage } from '../lib/errors.ts';
 import { BackLink } from '../ui/BackLink.tsx';
 import { Button, IconButton } from '../ui/Button.tsx';
@@ -35,10 +37,58 @@ export function ShellSettings() {
 							<div className="mt-0.5 break-all font-mono text-xs text-fg-3">{data.shell.executable}</div>
 						</InstallGitBash>
 					</section>
+					<TerminalLimits />
 					<Sandbox shell={data.shell} />
 				</div>
 			)}
 		</SettingsPage>
+	);
+}
+
+/** 终端数量的全局上限：AI 成员合计能创建几个。用户自己建的另有固定上限，不在这里配。 */
+function TerminalLimits() {
+	const limits = useTerminalLimits();
+	const queryClient = useQueryClient();
+	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState<string>();
+	const status = limits.data?.limits;
+	const save = async (value: number) => {
+		setError(undefined);
+		setBusy(true);
+		try {
+			const result = await api<{ limits: ITerminalLimits }>('PUT', '/v1/terminals/limits', { maxAiTerminals: value });
+			queryClient.setQueryData(queryKeys.terminalLimits, result);
+		} catch (caught) {
+			setError(errorMessage(caught));
+		} finally {
+			setBusy(false);
+		}
+	};
+	return (
+		<section className="rounded-xl border border-line bg-raised p-5">
+			<h2 className="mb-1 font-semibold">终端</h2>
+			<div className="mb-3 text-[13px] text-fg-2">AI 成员合计最多同时开几个终端，只算 shell 还在跑的，退出即释放。真人自己建的另有 20 个上限，不能配。</div>
+			<div className="flex items-center gap-2">
+				<input
+					key={status?.maxAiTerminals}
+					type="number" min={1} max={MAX_AI_TERMINALS} step={1}
+					defaultValue={status?.maxAiTerminals}
+					disabled={busy || status === undefined}
+					className={clsx(INPUT_CLASS, 'h-9 w-24')}
+					onBlur={event => {
+						const value = Number(event.target.value);
+						if (!Number.isInteger(value) || value < 1 || value > MAX_AI_TERMINALS) {
+							setError(`上限必须是 1 到 ${MAX_AI_TERMINALS} 的整数`);
+							return;
+						}
+						if (value !== status?.maxAiTerminals) void save(value);
+					}}
+				/>
+				<span className="text-[13px] text-fg-3">个</span>
+			</div>
+			{status?.problem && <div className="mt-3 text-[13px] text-danger">{status.problem}</div>}
+			{error && <div className="mt-3 text-[13px] text-danger">{error}</div>}
+		</section>
 	);
 }
 

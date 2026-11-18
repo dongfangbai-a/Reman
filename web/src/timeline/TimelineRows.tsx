@@ -206,6 +206,10 @@ export function EventRow({ entry, owner, memberById }: { entry: Entry<'group_eve
 	}
 	if (entry.kind === 'terminal_event') {
 		const { terminalId, request, waiting } = entry.event;
+		// 用户不用接管，直接让成员继续。
+		if (entry.event.event === 'declined') {
+			return <Line time={entry.createdAt} state={entry.contextState}>用户没有接管终端 {terminalId}，{name} 继续操作{request !== null && `（请求：${request}）`}</Line>;
+		}
 		// 成员在等你交还，终端却被关闭了、里面的程序退出了：它等不到交还，运行时这时告诉它。
 		if (entry.event.event !== 'released') {
 			const what = entry.event.event === 'exited' ? `终端 ${terminalId} 中的程序已退出`

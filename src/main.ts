@@ -42,6 +42,7 @@ async function main(): Promise<void> {
 		mcpPath: join(dataDirectory, 'mcp.json'),
 		customToolsConfigPath: join(dataDirectory, 'custom-tools.json'),
 		sandboxSettingsPath: join(dataDirectory, 'sandbox.json'),
+		terminalSettingsPath: join(dataDirectory, 'terminals.json'),
 		remoteSettingsPath: join(dataDirectory, 'remote.json'),
 		cloudflaredDirectory: join(dataDirectory, 'cloudflared'),
 		accessToken: token,

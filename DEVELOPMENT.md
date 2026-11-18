@@ -18,6 +18,8 @@ npm test
 
 三个 job 都有 `timeout-minutes`（10 分钟、10 分钟、20 分钟），挂住时直接失败，不会吃满 GitHub 默认的 6 小时。Windows job 跑测试时加了 `--test-force-exit`：2026-11-16 有过一次测试全部跑完（329 个用例全过）却吊了 43 分钟的情况，本机同一份代码 79 秒就干净退出，之后也没能复现，不知道是哪个句柄没关；加上这个参数，测试跑完就退出，不让个别情况下的一条流水线卡死。跟着的那一步会列出命令行里带 `reman-runtime` 的残留进程，用来在复现时抓到线索——那三个「残留 bash」观察过，是 Actions 给每个 `run:` 步骤起的外壳，不算我们的进程。
 
+本地单跑某个用例时不要加 `--test-force-exit`：2026-11-18 查到它在 Windows 上和退出时还在关闭的句柄撞车，起服务的用例（`src/server/server.test.ts`）单跑时稳定报 `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 94`，整文件跑、以及不带这个参数时都正常。`npm test` 本来就没带这个参数，CI 是整文件跑，两边都不受影响。
+
 ## 网页端开发服务器
 
 开发时先启动运行时（第一次先 `npm run web:install` 装网页端的依赖），再运行 `npm run web:dev`，打开 Vite 给出的地址，改代码后页面自动更新。运行时用了 `--data-dir` 时，用 `REMAN_DATA_DIR` 指定同一个目录（环境变量或 `web/.env.local`）；不在默认端口时用 `REMAN_RUNTIME_PORT` 指定。

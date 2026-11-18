@@ -205,6 +205,9 @@ export function createTerminalTool(
 			const id = terminalId ?? terminals.create(memberId, context.workingDirectory).terminalId;
 			if (context.trustTerminal) terminals.trust(id, memberId);
 			if (input) terminals.input(id, input, { memberId });
+			// 输入表示成员把终端拿回来自己用了，不再等用户接管；只读是边等边看，请求留着。
+			// 放在输入之后：用户正占用时输入会被拒绝，这时它还在等，不该撤销。
+			if (input && !askUser) terminals.cancelTakeover(id, memberId);
 			const noEnter = !!input && endsWithoutEnter(input);
 			const key = waitKey(memberId, id);
 			const startedAt = Date.now();

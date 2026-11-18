@@ -18,6 +18,7 @@ import { HelpTip } from '../ui/HelpTip.tsx';
 import { MemberName } from '../ui/MemberName.tsx';
 import { AiTag } from '../ui/MemberNote.tsx';
 import { Switch } from '../ui/Switch.tsx';
+import { MAX_TERMINALS_PER_MEMBER } from '../../../src/terminals/limits.ts';
 import { EMPTY_FORM, RULE_LABELS, directoryValue, fromMember, sameForm, toDefinition, toolsForm, type IAiForm } from './aiForm.ts';
 import { suggestMemberName } from './memberNames.ts';
 import { MemberPicker } from './MemberPicker.tsx';
@@ -260,6 +261,17 @@ export function AiEditor({ member, deleting = false, avatar, status, actions, no
 							<div className="pt-1.5">
 								<Switch checked={form.timeAwareness} label="时间感知" onChange={timeAwareness => update({ timeAwareness })} />
 							</div>
+						</Row>
+						<Row label="终端上限" help="这个成员自己建的终端同时最多保留几个；没关闭的都算，接管不影响。默认 3，最多 16。">
+							<input
+								type="number" min={1} max={MAX_TERMINALS_PER_MEMBER} step={1}
+								className={clsx(INPUT_CLASS, 'h-9 w-24')}
+								value={form.maxTerminals}
+								onChange={event => {
+									const value = Number(event.target.value);
+									if (Number.isInteger(value) && value >= 1 && value <= MAX_TERMINALS_PER_MEMBER) update({ maxTerminals: value });
+								}}
+							/>
 						</Row>
 					</Panel>
 					{member

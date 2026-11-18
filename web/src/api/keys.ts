@@ -42,6 +42,7 @@ export const queryKeys = {
 	runtimeState: ['runtimeState'] as const,
 	portableGit: ['portableGit'] as const,
 	sandbox: ['sandbox'] as const,
+	terminalLimits: ['terminalLimits'] as const,
 	remote: ['remote'] as const,
 	terminals: ['terminals'] as const,
 	skills: ['skills'] as const,

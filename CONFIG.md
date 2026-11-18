@@ -27,6 +27,7 @@ Linux 的 `~/.local/share/reman`（设了 `XDG_DATA_HOME` 时在它下面），`
 | `remote.json` | 公网访问的设置：Cloudflare 隧道的开关、域名、cloudflared 路径，以及另外放行的域名（Tailscale 之类），在网页端的设置里改；隧道 token 加密保存 |
 | `cloudflared/` | 下载的 cloudflared 和它的进程 pid；下载时核对过大小和 SHA-256 |
 | `cloudflared.log` | cloudflared 自己的输出，隧道连不上时看这里；超过 5 MB 时下次启动清掉 |
+| `terminals.json` | 终端数量的全局上限：AI 成员合计能创建几个（只算 shell 还在跑的），1 到 32，没有这个文件时是 16；在网页端的「shell 环境」里改。用户自己建的另有 20 个上限，不能配 |
 | `sandbox.json` | 沙箱开关和沙箱里的网络设置，在网页端的设置里改。`network`：`"all"`（默认）、`"none"`、`{ "allow": [主机名] }` 或 `{ "deny": [主机名] }`，主机名可以带端口；本机地址总是能连 |
 | `workspaces/<成员 ID>/` | AI 成员的默认工作目录，第一次用到时创建 |
 | `resources/` | 工具结果里的图片；`resources/attachments/` 是消息和直接对成员说话带的附件 |
@@ -97,6 +98,7 @@ AI 成员由 `members/<成员名>/` 文件夹定义：
 | `skills` | 能读的技能名。不写时用新成员的默认技能，内置默认一个都不启用；写了（包括 `[]`）就只有列出的 |
 | `tools` | 启用的工具；MCP 服务器写成 `mcp:<服务器名>`。不写时启用默认启用的那些工具：内置默认除了 `terminal`、`manage_group`、`test_event_route` 都启用，MCP 都不启用 |
 | `timeAwareness` | 时间感知：收到的内容带不带收到时的时间。不写时是 `true`；改了只影响之后收到的 |
+| `maxTerminals` | 最多同时开几个自己的终端，1 到 16 的整数，不写时是 3。只算这个成员建的、shell 还在跑的终端；退出了就不占名额，接过去操作也不改变归属。已有的超出上限不强制关闭，只是不能再新建 |
 
 审批方式和工作目录不在文件里，在网页端的成员设置里改：
 

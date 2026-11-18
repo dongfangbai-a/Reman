@@ -60,6 +60,7 @@ import { Tasks } from './tools/tasks.ts';
 import { DataProtection } from './tools/protection.ts';
 import { Tools, type ITool } from './tools/tools.ts';
 import { Workspaces } from './members/workspaces.ts';
+import { TerminalSettings } from './terminals/settings.ts';
 import { systemNotice, Timeline } from './timeline/timeline.ts';
 
 /** 随运行时提供的内置技能。 */
@@ -116,6 +117,8 @@ export interface IRuntimeOptions {
 	readonly portableGitDirectory?: string | null;
 	/** 沙箱的开关存在这里；不给时只在内存里，默认关。 */
 	readonly sandboxSettingsPath?: string;
+	/** terminals.json：终端数量的全局上限。不传时用默认值（16）。 */
+	readonly terminalSettingsPath?: string;
 	/** 公网访问的设置存在这里；不给时只在内存里。 */
 	readonly remoteSettingsPath?: string;
 	/** cloudflared 下载、放到这里；不给时不能下载，只能用已有的路径。 */
@@ -277,7 +280,9 @@ export class Runtime {
 			if (event.type === 'member.changed') this.sandbox.prune();
 		});
 		const commandParser = new CommandParser();
-		this.terminals = new Terminals(this.events, this.shells, this.members, this.timeline);
+		this.terminals = new Terminals(
+			this.events, this.shells, this.members, this.timeline, new TerminalSettings(options.terminalSettingsPath),
+		);
 		this.browserBlocklist = new BrowserBlocklist(options.browserBlocklistPath, () => this.serverPort, () => this.events.emit({ type: 'browserBlocklist.changed' }));
 		this.browsers = new Browsers(options.browsersDirectory, undefined, this.browserBlocklist);
 		const environment = new Environment(workspaces, this.shells, this.terminals);

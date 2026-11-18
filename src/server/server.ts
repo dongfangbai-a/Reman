@@ -410,7 +410,11 @@ export class RuntimeServer {
 		}));
 		this.route('POST', '/v1/terminals/:terminalId/takeover', ({ terminalId }) => ({ terminal: terminals.takeover(terminalId!) }));
 		this.route('POST', '/v1/terminals/:terminalId/release', ({ terminalId }) => ({ terminal: terminals.release(terminalId!) }));
+		this.route('POST', '/v1/terminals/:terminalId/decline', ({ terminalId }, body) => ({ terminal: terminals.decline(terminalId!, string(body, 'memberId')) }));
 		this.route('POST', '/v1/terminals/:terminalId/close', ({ terminalId }) => (terminals.close(terminalId!, 'user'), {}));
+		// 终端数量的全局上限：AI 成员合计能创建几个。用户自己建的另有固定上限，不能配。
+		this.route('GET', '/v1/terminals/limits', () => ({ limits: terminals.limits }));
+		this.route('PUT', '/v1/terminals/limits', (_, body) => ({ limits: terminals.setMaxAiTerminals(body['maxAiTerminals']) }));
 		this.route('POST', '/v1/members/:memberId/pause', ({ memberId }) => ({ member: runs.pause(memberId!) }));
 		this.route('POST', '/v1/members/:memberId/resume', ({ memberId }) => ({ member: runs.resume(memberId!) }));
 		this.route('POST', '/v1/members/:memberId/retry', ({ memberId }) => (runs.retry(memberId!), {}));
